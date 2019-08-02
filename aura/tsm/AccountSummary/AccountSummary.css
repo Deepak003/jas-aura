@@ -1,0 +1,199 @@
+.THIS.accountSummaryContainer {
+    display: block;
+}
+.THIS.viewNotesButton{
+    width:145px;
+    height:32px;
+}
+.THIS.editAccountStatus{
+    width:153px;
+    height:32px;
+}
+.THIS.cancelButton{
+    width:114px;
+    height:32px;
+}
+.THIS .setSatusModal .slds-backdrop {
+    width:100%;
+}
+.THIS.accountSummaryContainer .unverifiedSummaryBox {
+    background-color: #0070D2;
+    color: #fff;
+    border-radius: t(borderRadiusSmall);
+    border: 1px solid #0070D2;
+}
+.THIS.accountSummaryContainer .wrap-overflow {
+    word-break: break-word;
+}
+.THIS .text-style-bold {
+    font-weight: t(fontWeightBold);
+}
+.THIS.accountSummaryContainer .verifiedSummaryBox {
+    background-color: t(colorBackgroundAlt);
+    border-radius: t(borderRadiusSmall);
+    border: 1px solid #fff;
+}
+.THIS.accountSummaryContainer .customer-name-section {
+
+}
+.THIS.accountSummaryContainer .circle {
+    border-radius: 50%;
+    width: 15px;
+    height: 15px;
+    padding: 3px;
+    background: #fff;
+    color: #666;
+    display: inline-block;
+    color: #fff;
+    vertical-align: middle;
+    line-height: 10px;
+    font-size: 10px;
+}
+.THIS.accountSummaryContainer .circle.blue {
+    background-color: #0070D2;
+}
+.THIS.accountSummaryContainer .circle.green {
+    background-color: #30f112;
+}
+.THIS .edit-field-label {
+    color: #706e6b;
+}
+.THIS .snapButtonsCircular{
+   border-radius: 25px;
+}
+.THIS .text-bold{
+    font-size: 1.0rem;
+    font-weight: 700;
+    line-height: 1.25;
+}
+.THIS .backup-codes-headnig{
+    font-size: 1.0rem;
+    font-weight: 700;
+    line-height: 1.875rem;
+}
+.THIS .display-right{
+    float:right;
+}
+.THIS .type-active{
+    color:#4BCA81;
+    font-weight: 700;
+}
+.THIS .type-suspended{
+    color:#F5A623;
+    font-weight: 700;
+}
+.THIS .type-banned{
+    color:#D0021B;
+    font-weight: 700;
+}
+.THIS .type-green{
+    color:green;
+    font-weight: 700;
+}
+.THIS .type-yellow{
+    color:#f9ea03;
+    font-weight: 700;
+}
+.THIS .type-red{
+    color:red;
+    font-weight: 700;
+}
+.THIS .badge-green{
+    background-color:#4BCA81;
+}
+.THIS .badge-yellow{
+    background-color:#F5A623;
+}
+.THIS .badge-red{
+    background-color:#D0021B;
+}
+.THIS lightning-primitive-icon svg{
+    fill:#FFFFFF;
+}
+.THIS .adding-relative-parent{
+    position:relative;
+}
+.THIS .adding-absolute-right{
+    position:absolute;
+    right:0;
+}
+.THIS .adding-absolute{
+    position:absolute;
+}
+.THIS .blue-text{
+    color:blue;
+}
+.THIS .text-small-bold{
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.25;
+}
+.THIS .badge-grey{
+    background-color:#706E6B;
+}
+.THIS .container-left{
+    position: relative;
+    left: .5rem;
+}
+.THIS .margin-title{
+    margin-top:10px;
+}
+.THIS .snap-text{
+    font-size: 11px;
+}
+.THIS .allign-center{
+    text-align: center;
+}
+.THIS .type-green{
+    color:#4BCA81;
+    font-weight: 700;
+}
+.THIS .type-red{
+    color:#D0021B;
+    font-weight: 700;
+}
+.THIS .type-grey{
+    color:#706E6B;
+    font-weight: 700;
+}
+.THIS .type-yellow{
+    color:#F5A623;
+    font-weight: 700;
+}
+.THIS .snap-inner-text{
+    font-size: 10px;
+}
+.THIS lightning-icon{
+    cursor : pointer;
+}
+.THIS .slds-nubbin_top-right{
+    right:1.5rem;
+}
+.THIS .poopover-padding{
+    padding:1rem;
+}
+.THIS .button-margin-right{
+    margin-right:0.5rem;
+}
+.THIS .adding-truncation{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.THIS.accountSummaryContainer .border-light {
+    border-color: t(colorBorderSeparator);
+}
+.THIS .text-bold-aov {
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.THIS .underage lightning-primitive-icon svg {
+    fill: orange;
+}
+
+.THIS .badgeCSS {
+    background-color:#fff;
+    border: 1px solid #dddbda;
+}

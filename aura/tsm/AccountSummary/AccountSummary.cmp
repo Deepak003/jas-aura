@@ -1,0 +1,679 @@
+<aura:component implements="flexipage:availableForAllPageTypes,force:hasRecordId" controller="CustomerAuraController" access="global" >
+    <aura:handler name="init" action="{!c.getAccountSummary}" value="{!this}" />
+    <aura:attribute name="nucleusId" type="String"/>
+	<aura:attribute name="accountId" type="String"/>
+    <aura:attribute name="caseId" type="String"/>
+    <aura:attribute name="isCurrentOpen" type="List" />
+    <aura:attribute name="accountSummary" type="Object" />
+    <aura:attribute name="isAccountObject" type="boolean" />
+    <aura:attribute name="accountSnapDetails" type="Object" />
+    <aura:attribute name="isShielded" type="boolean" />
+	
+    <aura:attribute name="toTFAEmail" type="String" default=""/>
+    <aura:attribute name="showGenerateCode" type="boolean" default="false"/>
+	<aura:attribute name="caseObj" type="Object" />
+    <!--<aura:attribute name="tfaDateFormatting" type="String" default=""/>-->
+    <aura:attribute name="isLoadingCodes" type="Boolean" default="false" access="public"/>
+
+    <aura:attribute name="accVerificationType" type="String" default=""/>
+    <aura:attribute name="accVerificationData" type="String" default=""/>
+    <aura:attribute name="accVerificationIconName" type="String" default=""/> 
+	<aura:attribute name="isEmailVerfied" type="Boolean" default="false" access="public"/> <!-- TSM-1931 -->
+	<aura:attribute name="isResetStatusOpen" type="Boolean" access="private" default="false" />
+	<aura:attribute name="loginHistoryData" type="Map" />
+	<aura:attribute name="notAccountWrapperTabFlag" type="Boolean" default="true"/>
+	
+	 <!--newlyadded for editing status TSM 3021-->
+    <aura:attribute name="primaryState" type="String" />
+    <aura:attribute name="currentReason" type="String"/>
+    <aura:attribute name="openSpinner" type="Boolean" default="false"/>    
+    <aura:attribute name="accountStatusOptions" type="List" default="[
+                                                                     {'label': 'Active', 'value': 'ACTIVE'},
+                                                                     {'label': 'Disabled', 'value': 'DISABLED'},
+                                                                     {'label': 'Deactivated', 'value': 'DEACTIVATED'},
+                                                                     ]"/>
+    <aura:attribute name="accountReasons" type="List" />
+    <aura:attribute name="displayEdit" type="Boolean" default="true"/>
+    <aura:attribute name="disableSave" type="Boolean" default="true"/>
+    <aura:attribute name="updateStatusModal" type="Boolean" default="false"/>
+    <aura:attribute name="changedState" type="String"/>
+	<aura:attribute name="oldStatus" type="String"/>
+    <!--newlyadded for editing status TSM 3021-->
+	
+    <!--<aura:handler name="onVerification" event="c:AccountSecurityEvt" action="{!c.onChangeAOVEmailObj}"/>-->
+    
+    <aura:registerevent name="viewAllEvent" type="c:ViewAccountEvent"/>
+    <aura:registerevent name="viewAccountEvent" type="c:ViewAccountEvent"/>
+    <aura:registerevent name="sessionsOpenEvent" type="c:ViewAccountEvent"/>
+    
+	<aura:registerEvent name="RefreshPersona" type="c:RefreshPersona"/>
+    <!-- TSM-3386 Email case link case-->
+    <aura:attribute name="isCaseLinkedDisable" type="Boolean" default="false"/>
+
+    <!-- Account Summary Section -->
+    <div class="accountSummaryContainer slds-is-relative slds-m-top--x-small">
+        <!-- show this section when customer is verified  -->        
+        <div aura:id="verified">
+            <lightning:layout>
+                <!-- Email block -->
+                <lightning:layoutItem size="4">
+                    <div class="slds-form-element">
+                        <div class="slds-p-bottom_small adding-truncation">
+                            <span class="slds-text-heading_small slds-p-right_x-small text-style-bold">{!v.accountSummary.firstName}&nbsp;{!v.accountSummary.lastName}</span>
+                        </div>
+						<!-- start: TSM-2578 -->
+                        <aura:if isTrue="{!v.notAccountWrapperTabFlag}">
+                            <div class="slds-text-body_small" style="color: #161616;">Case Created From</div>
+                            <!-- Case from IVR -->
+                            <aura:if isTrue="{!v.caseObj.Origin=='IVR'}">
+                                <!-- will put phone number here -->
+                                <div class="slds-text-title_bold">{! v.accountSummary.phone ? v.accountSummary.phone : v.accountSummary.mobileNumber }</div>
+                                <div>
+                                    <span class="slds-text-body_small">
+                                        {!v.caseObj.Country__c}
+                                    </span>
+                                    <aura:if isTrue="{!v.caseObj.CaseIpAddress__c}">
+                                        ({!v.caseObj.CaseIpAddress__c})
+                                    </aura:if>
+                                </div>
+                                <!-- Case from EA help -->
+                                <aura:set attribute="else">
+                                    <div class="slds-text-title_bold">{!v.accountSummary.email}</div>
+                                    <div>
+                                        <span class="slds-text-body_small">
+                                            {!v.caseObj.Country__c}
+                                        </span>
+                                        <aura:if isTrue="{!v.caseObj.CaseIpAddress__c}">
+                                            ({!v.caseObj.CaseIpAddress__c})
+                                        </aura:if>
+                                    </div>
+                                </aura:set>
+                            </aura:if>
+                        </aura:if>
+                        <!-- end: TSM-2578 -->
+						<div class="underage">
+                            <aura:if isTrue="{!v.accountSummary.underageUser}">
+                                <span class="slds-badge badgeCSS">
+                                    <lightning:icon iconName="utility:warning" alternativeText="Warning!" variant="warning" size="xx-small"/>
+                                    Underage 
+                                </span>
+                            </aura:if>
+                            <aura:if isTrue="{!v.caseObj.Locale__c == 'ru_RU'}">
+                                <span class="slds-badge badgeCSS">
+                                    <lightning:icon iconName="utility:world" alternativeText="Russian" variant="warning" size="xx-small"/>
+                                    Russian 
+                                </span>
+                            </aura:if>
+                        </div>
+                    </div>
+                </lightning:layoutItem>
+                <!-- years at EA block -->
+                <lightning:layoutItem class="container-left" size="8">
+                    <div>
+                        <lightning:layout class="slds-m-bottom--large">
+                            <!-- security state block -->
+                            <lightning:layoutItem class="slds-size_1-of-6 allign-center"> 
+                                <div class="slds-hide">
+                                    <lightning:icon  class="badge-red" iconName="action:priority" alternativeText="Flagged" size="small"/>
+                                    <div class="snap-text edit-field-label margin-title">
+                                        <div>Account</div>
+                                        <div>Flagged</div>
+                                    </div>
+                                </div>  
+                            </lightning:layoutItem>
+                            
+                            <!-- security state block --> 
+                            <lightning:layoutItem class="slds-size_1-of-6">
+                                <div class="adding-relative-parent">
+                                    <!-- No AOV with Unauth --> 
+                                    <aura:if isTrue="{! not(v.accountSnapDetails.isAovVerified)}">
+                                        <c:AccountSecurity isCaseLinkedDisable="{!v.isCaseLinkedDisable}" caseId="{!v.caseId}" nucleusId="{!v.nucleusId}" />
+                                    </aura:if>
+                                    
+                                    <!-- AOV done with auth -->
+                                    <aura:if isTrue="{!v.accountSnapDetails.isAovVerified}">                                        
+                                        <!-- AOV done with auth-->
+                                        <aura:if isTrue="{! not(v.accountSnapDetails.isUnAuthenticated)}"> 
+                                            <div class="allign-center" onclick="{!c.toggleDialogue}" data-value="0">                                                                            
+                                                <lightning:icon iconName="action:approval" alternativeText="Verified " size="small" class="badge-green"/> 
+                                                <div class="snap-text edit-field-label margin-title">
+                                                    <div>Verified</div>
+                                                    <div>{! v.accountSnapDetails.aovVerifiedType}</div> 
+                                                </div>                      
+                                            </div>
+                                        </aura:if>
+                                        
+                                        <!-- AOV done with unauth-->
+                                        <aura:if isTrue="{!v.accountSnapDetails.isUnAuthenticated}"> 
+                                            <c:AccountSecurity isCaseLinkedDisable="{!v.isCaseLinkedDisable}" caseId="{!v.caseId}" nucleusId="{!v.nucleusId}" />
+                                        </aura:if>                                         
+                                    </aura:if> 
+                                    
+                                    <div class="slds-m-bottom_medium"></div>      
+                                    <section name="poopoverSnap" aura:id="snapInDialog"
+                                             class="slds-popover slds-nubbin_top-right slds-hide adding-absolute-right" role="dialog"
+                                             aria-label="Dialog Title" aria-describedby="dialog-body-id-5">
+                                        <div class="slds-popover__body poopover-padding">
+                                            <div class="text-bold">Account Verification</div>
+                                            <div class="slds-m-bottom_medium"></div>
+                                            <div class="slds-text-body_small edit-field-label snap-inner-text">Device/Type</div>
+                                            <aura:if isTrue="{!v.accountSnapDetails.isAovVerified == true}"> 
+                                                <div class="text-bold-aov"> {! v.accountSnapDetails.device } <aura:if isTrue="{! !empty(v.accountSnapDetails.deviceIp) }"> - {! v.accountSnapDetails.deviceIp}</aura:if></div>
+                                                <div class="slds-m-bottom_medium slds-text-body_small">{!v.accountSnapDetails.deviceType} - {!v.accountSnapDetails.deviceIpGeo}</div>
+                                                <aura:set attribute="else">
+                                                    <div class="text-bold-aov">{!v.accVerificationType}</div>
+                                                    <div class="slds-m-bottom_medium slds-text-body_small">{!v.accVerificationData}</div>  
+                                                </aura:set>    
+                                            </aura:if> 
+                                            <div class="slds-text-body_small edit-field-label snap-inner-text">Verified 
+                                        <lightning:relativeDateTime value="{!v.accountSnapDetails.tfaDateFormatting}"/></div>
+                                            <div class="slds-m-bottom_medium"></div>
+                                            <lightning:button onclick="{!c.viewLoginHistory}"
+                                                              value="viewLoginHistory" label="View Login History" />
+                                        </div>
+                                    </section>
+                                </div> 
+                            </lightning:layoutItem>
+                            
+                            <!-- security state block -->
+                            <lightning:layoutItem class="slds-size_1-of-6">
+                                <div class="adding-relative-parent">
+                                    <div class="allign-center" onclick="{!c.toggleDialogue}" data-value="1">
+                                        <aura:if isTrue="{!v.accountSnapDetails.status  == 'ACTIVE'}"> 
+                                            <lightning:icon class="slds-icon_container--circle badge-green" iconName="utility:emoji" alternativeText="Active" size="small"/>
+                                            <div class="snap-text edit-field-label margin-title">
+                                                <div>Account</div>
+                                                <div>Active</div>
+                                            </div>
+                                        </aura:if>
+                                        
+                                        <aura:if isTrue="{!v.accountSnapDetails.status  == 'SUSPENDED'}"> 
+                                            <lightning:icon class="slds-icon_container--circle badge-yellow" iconName="utility:block_visitor" alternativeText="Suspended" size="small"/>
+                                            <div class="snap-text edit-field-label margin-title">
+                                                <div>Account</div>
+                                                <div>Suspended</div>
+                                            </div>
+                                        </aura:if>
+                                        
+                                        <aura:if isTrue="{!v.accountSnapDetails.status  == 'BANNED'}"> 
+                                            <lightning:icon class="slds-icon_container--circle badge-red" iconName="utility:block_visitor" alternativeText="Banned" size="small"/>
+                                            <div class="snap-text edit-field-label margin-title">
+                                                <div>Account</div>
+                                                <div>Banned</div>
+                                            </div>
+                                        </aura:if>
+                                        
+                                        <aura:if isTrue="{!v.accountSnapDetails.status  == 'DISABLED'}"> 
+                                            <lightning:icon class="slds-icon_container--circle badge-grey" iconName="utility:resource_absence" alternativeText="Diabled" size="small"/>
+                                            <div class="snap-text edit-field-label margin-title">
+                                                <div>Account</div>
+                                                <div>Disabled</div>
+                                            </div>
+                                        </aura:if>
+                                        
+                                        <aura:if isTrue="{!v.accountSnapDetails.status  == 'DEACTIVATED'}"> 
+                                            <lightning:icon class="slds-icon_container--circle badge-grey" iconName="utility:resource_absence" alternativeText="Deactivated" size="small"/>
+                                            <div class="snap-text edit-field-label margin-title">
+                                                <div>Account</div>
+                                                <div>Deactivated</div>
+                                            </div>
+                                        </aura:if>
+                                        
+                                        <aura:if isTrue="{!v.accountSnapDetails.status  == 'DELETED'}"> 
+                                            <lightning:icon class="slds-icon_container--circle badge-grey" iconName="utility:resource_absence" alternativeText="Deleted" size="small"/>
+                                            <div class="snap-text edit-field-label margin-title">
+                                                <div>Account</div>
+                                                <div>Deleted</div>
+                                            </div>
+                                        </aura:if>
+                                    </div>
+                                    
+                                    <div class="slds-m-bottom_medium"></div>
+                                    <section aura:id="snapInDialog"
+                                             class="slds-popover slds-popover_large slds-nubbin_top-right slds-hide adding-absolute-right" role="dialog"
+                                             aria-label="Dialog Title" aria-describedby="dialog-body-id-5">
+                                        <aura:if isTrue="{!v.displayEdit}">
+                                        <div class="slds-popover__body poopover-padding" >
+                                            <div class="text-bold">Nucleus Account Status</div>
+                                            <div class="slds-m-bottom_medium"></div>
+                                            
+                                            <aura:if isTrue="{!v.accountSnapDetails.status  == 'ACTIVE'}"> 
+                                                <div class="type-green">{!v.accountSnapDetails.status}</div>
+                                               
+                                            </aura:if>
+                                            
+                                            
+                                            <aura:if isTrue="{!v.accountSnapDetails.status  == 'SUSPENDED'}"> 
+                                                <div class="type-grey">{!v.accountSnapDetails.status}</div>
+                                            </aura:if>
+                                            
+                                            
+                                            <aura:if isTrue="{!v.accountSnapDetails.status  == 'BANNED'}"> 
+                                                <div class="type-red">{!v.accountSnapDetails.status}</div>
+                                            </aura:if>
+                                            
+                                            <aura:if isTrue="{!v.accountSnapDetails.status  == 'DISABLED'}"> 
+                                                <div class="type-grey">{!v.accountSnapDetails.status}</div>
+                                            </aura:if>
+                                            
+                                            <aura:if isTrue="{!v.accountSnapDetails.status  == 'DEACTIVATED'}"> 
+                                                <div class="type-grey">{!v.accountSnapDetails.status}</div>
+                                            </aura:if>
+                                            
+                                            <aura:if isTrue="{!v.accountSnapDetails.status  == 'DELETED'}"> 
+                                                <div class="type-grey">{!v.accountSnapDetails.status}</div>
+                                            </aura:if>
+                                            
+                                            <!--<div class="slds-m-top_x-small">Details from backend currently on hold till we have events integrated</div>-->
+                                         
+                                            
+                                            <div class="slds-m-bottom_medium"></div>
+                                            <!--<aura:if isTrue="{!isAccountActive}">--> <aura:if isTrue="{!v.accountSnapDetails.status  == 'ACTIVE'}"> 
+                                                <!--tsm30223021-->
+                                                 <!--<lightning:button onclick="{!c.openCaseTab}"
+                                                                  value="viewCaseHistory" label="View Case History" />-->
+                                                <!--@21/4-->
+                                                <div class="slds-m-top_x-small">This account is active and has no current ToS violations on its nucleus account</div>
+                                           
+                                                <div class="slds-grid slds-gutters">
+                                                    <div class="slds-col slds-size_1-of-2">
+                                                        <span> <lightning:button onclick="{!c.viewAccountNotes}" class="editAccountStatus"
+                                                                                 value="viewAccountNotes" label="View Account Notes" /></span>
+                                                    </div>
+                                                    <div class="slds-col slds-size_2-of-2">
+                                                        <span> <lightning:button onclick="{!c.editAccountStatus}" class="viewNotesButton"
+                                                                                 value="ACTIVE" label="Edit Account Status" /></span>
+                                                    </div>
+                                                </div>
+                                               
+                                                <!--<aura:set attribute="else">
+                                                    <lightning:button onclick="{!c.viewAccountNotes}"
+                                                                      value="viewAccountNotes" label="View Account Notes" />
+                                                </aura:set>    -->
+                                            </aura:if>
+                                            <aura:if isTrue="{!v.accountSnapDetails.status=='DISABLED'}">
+                                                <div class="slds-grid slds-gutters">
+                                                    <div class="slds-col slds-size_1-of-2">
+                                                        <span> <lightning:button onclick="{!c.viewAccountNotes}"
+                                                                                 value="viewAccountNotes" label="View Account Notes" /></span>
+                                                    </div>
+                                                    <div class="slds-col slds-size_2-of-2">
+                                                        <span> <lightning:button onclick="{!c.editAccountStatus}"
+                                                                                 value="DISABLED" label="Edit Account Status" /></span>
+                                                    </div>
+                                                </div>
+                                            </aura:if>
+                                            <aura:if isTrue="{!v.accountSnapDetails.status=='DEACTIVATED'}">
+                                                <div class="slds-grid slds-gutters">
+                                                    <div class="slds-col slds-size_1-of-2">
+                                                        <span> <lightning:button onclick="{!c.viewAccountNotes}"
+                                                                                 value="viewAccountNotes" label="View Account Notes" /></span>
+                                                    </div>
+                                                    <div class="slds-col slds-size_2-of-2">
+                                                        <span> <lightning:button onclick="{!c.editAccountStatus}"
+                                                                                 value="DEACTIVATED" label="Edit Account Status" /></span>
+                                                    </div>
+                                                </div>
+                                            </aura:if>
+                                            <aura:if isTrue="{!v.accountSnapDetails.status=='BANNED'}">
+                                                <div class="slds-grid slds-gutters">
+                                                    <div class="slds-col slds-size_1-of-2">
+                                                        <span> <lightning:button onclick="{!c.viewAccountNotes}"
+                                                                                 value="viewAccountNotes" label="View Account Notes" /></span>
+                                                    </div>
+                                                    <div class="slds-col slds-size_2-of-2">
+                                                        <span> <lightning:button onclick="{!c.editAccountStatus}"
+                                                                                 value="BANNED" label="Edit Account Status" /></span>
+                                                    </div>
+                                                </div>
+                                            </aura:if>
+                                            <aura:if isTrue="{!v.accountSnapDetails.status=='DELETED'}">
+                                                <div class="slds-grid slds-gutters">
+                                                    <div class="slds-col slds-size_1-of-2">
+                                                        <span> <lightning:button onclick="{!c.viewAccountNotes}"
+                                                                                 value="viewAccountNotes" label="View Account Notes" /></span>
+                                                    </div>
+                                                    <!-- <div class="slds-col slds-size_2-of-2">
+                                                        <span> <lightning:button onclick="{!c.viewAccountNotes}"
+                                                                                 value="viewAccountNotes" label="Edit Account Status" /></span>
+                                                    </div>-->
+                                                </div>
+                                            </aura:if>
+                                        </div>
+                                            <aura:set attribute="else">
+                                                <div class="slds-popover__body poopover-padding" >
+                                               <!-- <aura:if isTrue="{!v.accountSnapDetails.status  == 'ACTIVE'}">-->
+                                                <!--TODO tsm3021/3022-->
+                                                <div class="text-bold">Nucleus Account Status</div>
+                                                    <div class="slds-m-bottom_medium"></div>
+                                                <div class="slds-grid slds-grid_vertical">
+                                                    <div class="slds-col slds-size_2-of-2">
+                                                    <span><lightning:combobox name="status"  label="Account Status" value="{!v.primaryState}" placeholder="Select a type" options="{! v.accountStatusOptions }" onchange="{!c.setCurrentStatus}" /></span>
+                                                    </div>
+                                                    <div class="slds-col slds-size_2-of-2">
+                                                        <lightning:combobox name="status" label="Reason" value="" placeholder="Select Reason" options="{! v.accountReasons }" onchange="{!c.handleChange}"/>
+                                                    </div>
+                                                </div><br/>
+                                                <div class="slds-grid slds-gutters">
+                                                    <div class="slds-col slds-size_2-of-4">
+                                                        <span> </span>
+                                                    </div>
+                                                    <div class="slds-col slds-size_1-of-4">
+                                                        <lightning:button onclick="{!c.cancel}" class="cancelButton"
+                                                                                 value="cancel" label="cancel" />
+                                                    </div>
+                                                    <div class="slds-col slds-size_1-of-4">
+                                                        <span> <lightning:button variant="brand" class="cancelButton" disabled="{!v.disableSave}" onclick="{!c.updateStatus}" 
+                                                                                 value="update" label="Save" /></span>
+                                                    </div>
+                                                </div>
+                                               <!-- </aura:if>-->
+                                                </div>
+                                            </aura:set>
+                                        </aura:if>
+                                    </section>  
+                                </div>
+                            </lightning:layoutItem>
+                            
+                            <!-- TFA block -->
+                            <lightning:layoutItem class="slds-size_1-of-6">
+                                <div class="adding-relative-parent">
+                                    <div class="allign-center" onclick="{!c.toggleDialogue}" data-value="2">
+                                        <aura:if isTrue="{!v.accountSnapDetails.securityState   == 'GREEN'}"> 
+                                            <lightning:icon class="slds-icon_container--circle badge-green" iconName="utility:lock" alternativeText="Green" size="small"/>
+                                            <div class="snap-text edit-field-label margin-title">
+                                                <div>Security</div>
+                                                <div>Green</div>
+                                            </div>
+                                        </aura:if>  
+                                        
+                                        <aura:if isTrue="{!v.accountSnapDetails.securityState   == 'YELLOW'}"> 
+                                            <lightning:icon class="slds-icon_container--circle badge-yellow" iconName="utility:unlock" alternativeText="Yellow" size="small"/>
+                                            <div class="snap-text edit-field-label margin-title">
+                                                <div>Security</div>
+                                                <div>Yellow</div>
+                                            </div>
+                                        </aura:if>
+                                        
+                                        <aura:if isTrue="{!v.accountSnapDetails.securityState   == 'RED'}"> 
+                                            <lightning:icon class="slds-icon_container--circle badge-red" iconName="utility:warning" alternativeText="Red" size="small"/>
+                                            <div class="snap-text edit-field-label margin-title">
+                                                <div>Security</div>
+                                                <div>Red</div>
+                                            </div>
+                                        </aura:if>
+                                    </div>
+                                    <div class="slds-m-bottom_medium"></div>
+                                    <section aura:id="snapInDialog"
+                                             class="slds-popover slds-nubbin_top-right slds-hide adding-absolute-right slds-popover_large" role="dialog"
+                                             aria-label="Dialog Title" aria-describedby="dialog-body-id-5">
+                                        <div class="slds-popover__body poopover-padding">
+                                            <div class="text-bold">Account Security</div>
+                                            <div class="slds-m-bottom_medium"></div>
+                                            
+                                            <aura:if isTrue="{!v.accountSnapDetails.securityState   == 'GREEN'}"> 
+                                                <div class="type-green">{!v.accountSnapDetails.securityState}</div>
+                                                <div class="slds-m-top_x-small">No suspicious logins to this account in the past 90 days.</div>
+                                            </aura:if>  
+                                            
+                                            <aura:if isTrue="{!v.accountSnapDetails.securityState   == 'YELLOW'}"> 
+                                                <div class="type-yellow">{!v.accountSnapDetails.securityState}</div>
+                                                <div class="slds-m-top_x-small">There have been suspicious attempts to login within the past 90 days.</div>
+                                            </aura:if>
+                                            
+                                            <aura:if isTrue="{!v.accountSnapDetails.securityState   == 'RED'}"> 
+                                                <div class="type-red">{!v.accountSnapDetails.securityState}</div>
+                                                <div class="slds-m-top_x-small">There have been suspicious attempts to login within the past 90 days.</div>
+                                            </aura:if>
+                                            <div class="slds-m-bottom_medium"></div>
+                                            <aura:if isTrue="{!or ((v.accountSnapDetails.securityState == 'YELLOW'), (v.accountSnapDetails.securityState == 'RED'))}">
+                                                <aura:iteration items="{!v.loginHistoryData}" var="cus" indexVar="key">
+                                                    <div>
+                                                        <span class="slds-text-title_bold">{!cus.count} unsuccessful login attempts from {!cus.name}</span>
+                                                    </div>
+                                                </aura:iteration>
+                                            </aura:if>
+                                            
+                                            <div class="slds-m-bottom_medium"></div>
+                                            <lightning:button class="button-margin-right" onclick="{!c.viewLoginHistory}"
+                                                              value="viewLoginHistory" label="View Login History" />
+                                            <aura:if isTrue="{!v.accountSnapDetails.securityState != 'GREEN'}">
+                                                <lightning:button onclick="{!c.openResetModal}"
+                                                                  value="resetStatus" label="Reset Status" />
+                                            </aura:if>
+                                            <aura:if isTrue="{!v.isResetStatusOpen}">
+                                                <c:ParentModal isModalOpen="{!v.isResetStatusOpen}">            
+                                                    <aura:set attribute="content">
+                                                        <p>This will reset the Security State of this account to green, are you sure?</p>
+                                                    </aura:set>
+                                                    <aura:set attribute="title">
+                                                        <p>Reset Security State</p>
+                                                    </aura:set>
+                                                    <aura:set attribute="success" value="Reset"/>
+                                                    <aura:set attribute="cancel" value="Cancel"/>
+                                                    <aura:set attribute="onSuccess" value="{!c.resetStatus}"/>
+                                                    <aura:set attribute="onCancel" value="{!c.closeResetStatus}"/>
+                                                </c:ParentModal>
+                                            </aura:if>
+                                        </div>
+                                    </section> 
+                                </div>
+                            </lightning:layoutItem>
+                            
+                            <!-- SQA block -->
+                            <lightning:layoutItem class="slds-size_1-of-6">
+                                <div class="adding-relative-parent">
+                                    <div class="allign-center" onclick="{!c.toggleDialogue}" data-value="3">                
+                                        <aura:if isTrue="{!v.accountSnapDetails.tfaResponse.status == 'Not Setup'}"> 
+                                            <lightning:icon class="slds-icon_container--circle badge-red" iconName="utility:warning" alternativeText="TFA" size="small"/>
+                                            <div class="snap-text edit-field-label margin-title">
+                                                <div>TFA</div>
+                                                <div>Not Enabled</div>
+                                            </div>
+                                        </aura:if> 
+                                        <aura:if isTrue="{!v.accountSnapDetails.tfaResponse.status == 'DISABLED'}"> 
+                                            <lightning:icon class="slds-icon_container--circle badge-red" iconName="utility:warning" alternativeText="TFA" size="small"/>
+                                            <div class="snap-text edit-field-label margin-title">
+                                                <div>TFA</div>
+                                                <div>Disabled</div>
+                                            </div>
+                                        </aura:if> 
+                                        <aura:if isTrue="{!v.accountSnapDetails.tfaResponse.status == 'ENABLED'}"> 
+                                            <lightning:icon class="badge-green" iconName="action:approval" alternativeText="TFA" size="small"/>
+                                            <div class="snap-text edit-field-label margin-title">
+                                                <div>TFA</div>
+                                                <div>Enabled</div>
+                                            </div>
+                                        </aura:if>
+                                        <!-- TSM-2844 Adding new state to TFA -->
+                                        <aura:if isTrue="{!v.accountSnapDetails.tfaResponse.status == 'PENDING'}"> 
+                                            <lightning:icon class="badge-red" iconName="action:defer" alternativeText="TFA" size="small"/>
+                                            <div class="snap-text edit-field-label margin-title">
+                                                <div>TFA</div>
+                                                <div>Pending</div>
+                                            </div>
+                                        </aura:if>
+                                    </div>
+                                    <div class="slds-m-bottom_medium"></div>
+                                    
+                                    <section aura:id="snapInDialog"
+                                             class="slds-popover slds-nubbin_top-right slds-hide adding-absolute-right" role="dialog"
+                                             aria-label="Dialog Title" aria-describedby="dialog-body-id-5">
+                                        <!-- TSM-2844 Additional condition added for pending state -->     
+                                        <aura:if isTrue="{! or(v.accountSnapDetails.tfaResponse.status == 'Not Setup' , v.accountSnapDetails.tfaResponse.status == 'PENDING')}"> 
+                                            <div class="slds-popover__body poopover-padding">
+                                                <div class="text-bold">Send TFA Setup</div>
+                                                <div class="slds-m-bottom_medium"></div>
+                                                <div>Send knowledge article to the player for information on how to setup TFA</div>
+                                                <div class="slds-m-bottom_medium"></div>
+                                                <lightning:layout>
+                                                    <lightning:layoutItem class="slds-text-body_small" size="1">
+                                                    </lightning:layoutItem>
+                                                    <lightning:layoutItem class="slds-text-body_small" size="4">
+                                                        <div class="slds-text-body_small">Primary Email</div>
+                                                    </lightning:layoutItem>
+                                                    <lightning:layoutItem class="slds-text-body_small" size="4">
+                                                        <div class="slds-text-body_small blue-text">Recommended</div>
+                                                    </lightning:layoutItem>
+                                                </lightning:layout>
+                                                <lightning:input type="radio" class="text-small-bold" label="{!v.accountSummary.email}" name="primaryEmail" value="{!v.accountSummary.email}" onchange="{!c.handleRadioClick}" checked="true" disabled="{!v.isCaseLinkedDisable}" />
+                                                <aura:if isTrue="{!v.accountSnapDetails.secondaryEmail != null}"> 
+                                                    <div class="slds-m-bottom_medium"></div>
+                                                    <div>Secondary Email</div>
+                                                    <lightning:input type="radio" label="{!v.accountSummary.secondaryEmail}" name="primaryEmail" onchange="{!c.handleRadioClick}" value="{!v.accountSummary.secondaryEmail}" disabled="{!v.isCaseLinkedDisable}" />
+                                                </aura:if>
+                                                <div class="slds-m-bottom_large"></div>
+                                                <lightning:button onclick="{!c.sendTFAEmail}"
+                                                                  value="sendTFAEmail" label="Send Email" disabled="{!v.isCaseLinkedDisable}"/>
+                                                <div class="slds-m-bottom_medium"></div>
+                                            </div>  
+                                            <aura:set attribute="else">
+                                                <div class="slds-popover__body poopover-padding">
+                                                    <lightning:layout>
+                                                        <lightning:layoutItem class="slds-text-body_small" size="10">
+                                                            <div class="text-bold">Login Verification</div>
+                                                        </lightning:layoutItem>
+                                                        <lightning:layoutItem class="slds-text-body_small" size="2">
+                                                            <aura:if isTrue="{!v.accountSnapDetails.tfaResponse.status == 'DISABLED'}">
+                                                                <lightning:input aura:id="loginVerificationToggle" type="toggle"
+                                                                                 onchange="{!c.toggleBackupcodes}" label="" value="verificationTFA"
+                                                                                 name="loginVerificationToggle" />
+                                                                <aura:set attribute="else">                    
+                                                                    <lightning:input aura:id="loginVerificationToggle" type="toggle"
+                                                                                     onchange="{!c.toggleBackupcodes}" label="" value="verificationTFA"
+                                                                                     name="loginVerificationToggle" checked="true" />
+                                                                </aura:set>
+                                                            </aura:if>
+                                                        </lightning:layoutItem>
+                                                    </lightning:layout>
+                                                    
+                                                    <div class="slds-m-bottom_medium"></div>
+                                                    <div class="slds-text-body_small snap-inner-text">{!v.accVerificationType}</div>
+                                                    <div class="slds-m-bottom_xx-small"></div>
+                                                    <div class="slds-text-body_small text-small-bold">{!v.accVerificationData}</div>
+                                                    <div class="slds-text-body_small edit-field-label snap-inner-text">Last updated <lightning:relativeDateTime value="{!v.accountSnapDetails.tfaDateFormatting}"/></div>
+                                                    <div class="slds-m-bottom_large"></div>
+                                                    <aura:if isTrue="{!v.accountSnapDetails.tfaResponse.status != 'DISABLED'}">
+                                                        <div aura:id="toggleBackUpCodes" class="slds-is-relative">
+                                                            <lightning:spinner variant="brand" size="small" class="{! v.isLoadingCodes ? 'slds-show' : 'slds-hide' }"/>
+                                                            <div class="slds-grid">
+                                                                <div class="backup-codes-headnig slds-size_6-of-12">Backup Codes</div>
+                                                                <div class="slds-text-align_right slds-size_6-of-12">
+                                                                    <aura:if isTrue="{!v.showGenerateCode}">
+                                                                        <lightning:button variant="base" label="Generate codes" title="Generate codes" onclick="{! c.generateCodes }" />
+                                                                    </aura:if>
+                                                                </div>
+                                                            </div>
+                                                            <div class="slds-m-bottom_medium"></div>
+                                                            <lightning:layout class="slds-p-bottom_small">
+                                                                <lightning:layoutItem class="slds-text-body_small" size="6">
+                                                                    <div class="edit-field-label">BACKUP CODES</div>
+                                                                </lightning:layoutItem>
+                                                                <lightning:layoutItem class="slds-text-body_small" size="6">
+                                                                    <div class="edit-field-label">STATUS</div>
+                                                                </lightning:layoutItem>
+                                                            </lightning:layout>
+                                                            <aura:if isTrue="{!v.showGenerateCode}">
+                                                                <div class="slds-border_top border-light slds-p-bottom_small slds-p-top_small">All backup codes are used. Please click on Generate Codes to generate more.</div>
+                                                            </aura:if>
+                                                            <aura:iteration items="{!v.accountSnapDetails.tfaResponse.backupCodes}" var="item">
+                                                                <aura:if isTrue="{!item.isExpired == 'N'}">
+                                                                    <lightning:layout class="slds-border_top border-light slds-p-bottom_small slds-p-top_small">
+                                                                        <lightning:layoutItem class="slds-text-body_small" size="6">
+                                                                            <span>{!item.code}</span>
+                                                                        </lightning:layoutItem>
+                                                                        <lightning:layoutItem class="slds-text-body_small" size="6">
+                                                                            <span>Available</span>
+                                                                        </lightning:layoutItem>
+                                                                    </lightning:layout>
+                                                                </aura:if>
+                                                            </aura:iteration>
+                                                        </div>
+                                                    </aura:if>
+                                                    <div class="slds-m-bottom_medium"></div>
+                                                </div> 
+                                            </aura:set>
+                                        </aura:if> 
+                                    </section> 
+                                    
+                                </div>
+                            </lightning:layoutItem>
+                            
+                            <!-- security state block -->
+                            <lightning:layoutItem class="slds-size_1-of-6">
+                                <div class="adding-relative-parent">
+                                    <div class="allign-center" onclick="{!c.toggleDialogue}" data-value="4">
+                                        <aura:if isTrue="{!v.isShielded == false}">  
+                                            <lightning:icon class="badge-green" iconName="action:approval" alternativeText="Unshielded" size="small"/>
+                                            <div class="margin-title">
+                                                <div class="snap-text edit-field-label"> Account</div>
+                                                <div class="snap-text edit-field-label">Unshielded</div>
+                                            </div>
+                                        </aura:if>
+                                        <aura:if isTrue="{!v.isShielded == true}">
+                                            <lightning:icon class="slds-icon_container--circle badge-red" iconName="utility:shield" alternativeText="Shielded" size="small"/>
+                                            <div class="margin-title">
+                                                <div class="snap-text edit-field-label">Account</div>
+                                                <div class="snap-text edit-field-label">Shielded</div>
+                                            </div>     
+                                        </aura:if>                  
+                                    </div>
+                                    <div class="slds-m-bottom_medium"></div>
+                                    <section aura:id="snapInDialog"
+                                             class="slds-popover slds-nubbin_top-right slds-hide adding-absolute-right" role="dialog"
+                                             aria-label="Dialog Title" aria-describedby="dialog-body-id-5">
+                                        <div class="slds-popover__body poopover-padding">
+                                            <div class="text-bold">Account Shield Status</div>
+                                            <div class="slds-m-bottom_medium"></div>
+                                            <aura:if isTrue="{!v.isShielded == false}">  
+                                                <div class="type-green">UNSHIELDED</div>
+                                                <div class="slds-m-top_x-small">This account is currently unshielded. To shield account complete the reason and continue</div>
+                                                <aura:set attribute="else">
+                                                    <div class="type-red">SHIELDED</div>
+                                                    <div>Notes will be pulled up only when events are integrated</div>
+                                                </aura:set>
+                                            </aura:if>  
+                                            <lightning:textarea aura:id="shieldText" label="Reason" value="" onchange="{!c.toggleShieldActionButton}"/>
+                                            <div class="slds-m-bottom_medium"></div>
+                                            <aura:if isTrue="{!v.isShielded == false}">
+                                                <lightning:button aura:id="shieldButton" variant="brand" onclick="{!c.shieldAccount}"
+                                                                  value="shieldAccount" label="Shield Account" disabled="true"/>
+                                                <aura:set attribute="else">
+                                                    <lightning:button onclick="{!c.viewAccountNotes}"
+                                                                      value="viewAccountNotes" label="View Account Notes" />
+                                                    <lightning:button aura:id="unShieldButton" onclick="{!c.unShieldAccount}"
+                                                                      value="unShield" label="UnShield" disabled="true"/>
+                                                </aura:set>
+                                            </aura:if> 
+                                        </div>
+                                    </section> 
+                                </div>
+                            </lightning:layoutItem>
+                        </lightning:layout>
+                    </div>
+                </lightning:layoutItem>
+            </lightning:layout>
+        </div>
+    </div>
+	
+	<aura:if isTrue="{!v.updateStatusModal}">
+        <div class="setStatusModal">
+            <c:ParentModal isModalOpen="{!v.updateStatusModal}" outerClass="setSatusModal">
+                <aura:set attribute="content">
+                    <p>Are you sure you want to set this account's status to {!v.changedState} ?</p>
+                </aura:set>
+                <aura:set attribute="title">
+                    <p>Set Account to {!v.changedState}</p>
+                </aura:set>
+                <aura:set attribute="clickClose" value="false"/>
+                <aura:set attribute="showSpinner" value="{!v.openSpinner}"/>
+                    <aura:set attribute="escapeClose" value="false"/>
+                    <aura:set attribute="success" value="Yes,Set Status"/>
+                    <aura:set attribute="cancel" value="No"/>
+                    <aura:set attribute="onSuccess" value="{!c.updateAccountState}"/>
+                    <aura:set attribute="onCancel" value="{!c.closeUpdateModal}"/>
+                    <aura:set attribute="isSuccessDisable" value="{!v.disableSave}"/>
+            </c:ParentModal>
+         </div>
+    </aura:if>
+</aura:component>

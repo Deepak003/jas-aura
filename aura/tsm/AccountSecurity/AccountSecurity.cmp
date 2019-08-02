@@ -1,0 +1,403 @@
+<aura:component implements="flexipage:availableForAllPageTypes,force:hasRecordId"
+                controller="CustomerAuraController" >
+    
+    <!-- mandatory attributes -->
+    <aura:attribute name="nucleusId" type="String" access="global"/>
+    <aura:attribute name="caseId" type="String" access="global"/>
+    <aura:attribute name="accountId" type="Id" />
+    <!-- optional attributes -->
+    <aura:attribute name="showIcon" type="Boolean" default="true" access="global"/>
+    <aura:attribute name="isOpen" type="Boolean" default="false" access="global"/>
+    <aura:attribute name="variant" type="String" default="popover" access="global"/>
+    <aura:attribute name="isVerified" type="Boolean" default="false" access="global"/><!-- 1931 -->
+    
+    <!-- private attributes -->
+    <aura:attribute name="emails" type="List" default="[]" access="private"/>
+    <aura:attribute name="isSpinner" type="Boolean" default="true" access="private"/>    
+    <aura:attribute name="sentEmail" type="Boolean" default="false" access="private"/>
+    <aura:attribute name="verificationCode" type="String" default="" access="private"/>
+    <aura:attribute name="sendArticle" type="Boolean" default="false" access="private"/>
+    <!--<aura:attribute name="setUpTFA" type="Boolean" default="false" access="private"/>-->
+    <aura:attribute name="failedEmailObj" type="Object" default="" access="private"/>
+    <aura:attribute name="isEmailToValidate" type="Boolean" default="true" access="private"/>
+    <aura:attribute name="isLastEmailToValidate" type="Boolean" default="false" access="private"/>
+    <aura:attribute name="numberOfAttemptLeft" type="Integer" default="4" access="private"/>
+    
+    <aura:handler name="change" value="{! v.sentEmail }" action="{!c.onSentEmail}"/>
+    <aura:handler name="change" value="{! v.emails }" action="{!c.onChangeEmails}"/>
+    
+    <ltng:require scripts="{!$Resource.Util}" afterScriptsLoaded="{!c.doInit}"/>
+    
+    <aura:registerEvent name="onVerification" type="c:AccountSecurityEvt" />
+    
+    <!-- TSM-1933 Adding attribute for prior emails -->
+    <aura:attribute name="priorEmails" type="List"/>
+    <aura:attribute name="isHistoryRecommended" type="Boolean" default="false"/>
+    <aura:attribute name="selectedHistoryEmail" type="String" default=""/>
+    <aura:attribute name="isHistoryEmail" type="Boolean" default="false" />
+    <aura:attribute name="isHistoryRecommendedRadio" type="Boolean" default="false" />
+    <aura:attribute name="showPriorEmailContainer" type="Boolean" default="true" />
+    
+    <!-- TSM-3386 Email case link case-->
+    <aura:attribute name="isCaseLinkedDisable" type="Boolean"/>
+
+    <div class="slds-is-relative" aura:id="account-security">
+        <aura:if isTrue="{!v.showIcon}">            
+            <div class="center part-1" onclick="{! c.toggleOpen }">                        
+                <span class="account-security warning">
+                    <lightning:icon iconName="utility:warning" 
+                                    alternativeText="Warning!" 
+                                    variant="inverse"
+                                    class=""
+                                    size="small"/>
+                </span>                    
+                <div class="title edit-field-label margin-title">
+                    <div>Verification</div>
+                    <div>Needed</div>
+                </div>
+            </div>            
+        </aura:if>
+        <aura:if isTrue="{!v.variant=='popover'}">
+            <section class="{! join(' ', 
+                            'slds-popover slds-nubbin_top-right slds-popover_medium slds-m-top_medium part-2',
+                            v.isOpen ? 'slds-show' : 'slds-hide'
+                            )}" role="dialog" aria-label="Dialog Title" aria-describedby="dialog-body-id-28">
+                
+                <lightning:spinner variant="brand"  size="large" class="{!v.isSpinner ? 'slds-show' : 'slds-hide'}" />
+                <div class="slds-popover__body slds-p-around_medium">                    
+                    <div class="class-1 slds-p-bottom_medium text-bold">
+                        <aura:if isTrue="{! !v.isEmailToValidate }">
+                            All Methods Failed                            
+                            <aura:set attribute="else">
+                                <aura:if isTrue="{! empty(v.failedEmailObj) }">
+                                    Account Verification
+                                    <aura:set attribute="else">
+                                        {! v.failedEmailObj.typeText } Failed
+                                    </aura:set>
+                                </aura:if>
+                            </aura:set>
+                        </aura:if>
+                    </div>
+                    <div class="slds-p-bottom_medium slds-text-body_small">
+                        <aura:if isTrue="{! v.sentEmail == false }">
+                            <aura:if isTrue="{! !v.isEmailToValidate }">
+                                All pin number attempts have failed for this method. Please read the Failed AOV script below to the player.
+                                <aura:set attribute="else">
+                                    <aura:if isTrue="{! empty(v.failedEmailObj) }">
+                                        Based on this players history, use the recommended method to verify account ownership
+                                        <aura:set attribute="else">
+                                            You have used all of the process attempts to verify using {! v.failedEmailObj.typeText }. Please try another email on file to verify.
+                                        </aura:set>
+                                    </aura:if>
+                                </aura:set>
+                            </aura:if>
+                            <aura:set attribute="else">
+                                A Verification email has been sent, the player will need to read over the Pin number and will have 3 attempts before trying another method.
+                            </aura:set>
+                        </aura:if>
+                    </div>                    
+                    
+                    <aura:if isTrue="{! !v.isEmailToValidate  }">
+                        <div class="class-3">
+                            Thanks for sticking with me while I looked into the issue.
+                            <br/>
+                            <br/>
+                            I couldn't verify that you own this account based on the info you gave me.
+                            <br/>
+                            To confirm that you're the account owner, we need specific details when we recover accounts. We want to make sure we're not compromising your account security, so we can't help out with the issue right now.
+                            <br/><br/>
+                            If you remember your account information later, you can resume this case on EA Help at help.ea.com/my-cases/ or click Contact Us on any help.ea.com page to start a new case.
+                            <br/><br/>
+                            You can also look for answers on EA Help and Answers HQ.
+                            <br/><br/>
+                            Is there anything else I can help you with today?
+                        </div>                        
+                        <aura:set attribute="else">
+                            <aura:iteration items="{!v.emails}" var="row">
+                                <aura:if isTrue="{! row.isAllowedForVerification }" >
+                                    <div class="slds-grid slds-m-bottom_small slds-gutters email">
+                                        <div class="slds-col slds-size_1-of-12 class-4">
+                                            <div class="class-5">
+                                                <aura:if isTrue="{! row.isSuspicious }">
+                                                    <span class="warning">
+                                                        <lightning:icon iconName="utility:warning" alternativeText="Warning!" size="xx-small"/>
+                                                    </span>                                                    
+                                                    
+                                                    <aura:set attribute="else">
+                                                        <lightning:input type="radio" 
+                                                                         label="" 
+                                                                         name="emails" 
+                                                                         value="{! row }" 
+                                                                         checked="{! row.isSelected }"
+                                                                         variant="label-hidden"                                                                 
+                                                                         onchange="{! c.onSelect }"
+                                                                         disabled="{! v.isCaseLinkedDisable == true ? true : v.sentEmail == true }"/>
+                                                    </aura:set>
+                                                </aura:if>        
+                                            </div>
+                                        </div>
+                                        <div class="slds-col slds-size_11-of-12">
+                                            <div class="slds-p-bottom_xx-small slds-text-body_small">
+                                                <span>{! row.typeText }</span>
+                                                <aura:if isTrue="{! and(row.isRecommended, not(v.sentEmail)) }">
+                                                    <span class="class-6">Recommended</span>
+                                                </aura:if>
+                                            </div>
+                                            <div><strong>{! row.email }</strong></div>
+                                            <aura:if isTrue="{!row.updatedOn}">
+                                                <div>last updated <lightning:relativeDateTime value="{!row.updatedOn}"/></div>
+                                            </aura:if>                                
+                                        </div>
+                                    </div>
+                                </aura:if>
+                            </aura:iteration>  
+                            
+                            <!-- TSM- 1933 Adding logic to loop through the history email -->
+                            <aura:if isTrue="{! and(v.priorEmails.length > 0, v.showPriorEmailContainer)}">
+                                <div class="slds-grid slds-gutters email">
+                                    <div class="slds-col slds-size_1-of-12 class-4">
+                                        <div class="class-5">
+                                            <lightning:input type="radio" 
+                                                             name="emails"
+                                                             checked="{!v.isHistoryRecommendedRadio}"
+                                                             variant="label-hidden"                                                                 
+                                                             onchange="{! c.onHistorySelect }"
+                                                             disabled="{! v.isCaseLinkedDisable == true ? true : v.sentEmail == true }"/> 
+                                            
+                                        </div>
+                                    </div>
+                                    <div class="slds-col slds-size_11-of-12">
+                                        <div class="slds-p-bottom_xx-small slds-text-body_small">
+                                            <span>Other Verification Methods</span>
+                                            <aura:if isTrue="{! and(v.isHistoryRecommended, not(v.sentEmail)) }">
+                                                <span class="other-verification-recommended">Recommended</span>
+                                            </aura:if>
+                                        </div>   
+                                        <div>   
+                                            <lightning:combobox name="historyEmail" 
+                                                                value="{!v.selectedHistoryEmail}" 
+                                                                placeholder="Please Select" 
+                                                                variant="label-hidden" 
+                                                                options="{! v.priorEmails }" 
+                                                                onchange="{! c.toggleDisable }" disabled="{! v.isCaseLinkedDisable == true ? true : v.sentEmail == true  }"/>
+                                        </div>
+                                    </div>
+                                </div>
+                            </aura:if>
+                        </aura:set>
+                        
+                    </aura:if>
+                    
+                    <aura:if isTrue="{! v.sentEmail }">                        
+                        <div class="slds-grid slds-p-top_large slds-p-bottom_small">
+                            <div class="slds-col slds-size_1-of-1 slds-p-left_none slds-p-right_none">
+                                <lightning:input label="Verification Code" value="{! v.verificationCode }" 
+                                                 class="{! join(
+                                                        lessthan(v.numberOfAttemptLeft, 4) ? 'slds-has-error' : '',
+                                                        ' ',
+                                                        'verification-input'
+                                                        )}"/>                                
+                                <aura:if isTrue="{! lessthan(v.numberOfAttemptLeft, 4) }">
+                                    <div class="slds-p-top_x-small class-7">
+                                        *Incorrect pin, you have {! v.numberOfAttemptLeft } attempts remaining
+                                    </div>
+                                </aura:if>                                
+                                <aura:if isTrue="{! v.isLastEmailToValidate }">
+                                    <lightning:input type="checkbox" label="Set up TFA with email account" checked="{! v.sendArticle }" class="slds-p-top_medium"/>
+                                    <aura:set attribute="else">
+                                        <lightning:input type="checkbox" label="Send Knowledge article on how to setup TFA" checked="{! v.sendArticle }" class="slds-p-top_medium"/>
+                                    </aura:set>
+                                </aura:if>                              
+                            </div>                            
+                        </div>
+                    </aura:if>
+                    
+                    <div class="slds-grid slds-p-top_large slds-p-bottom_small slds-grid_reverse">
+                        <div class="class-8">
+                            
+                            <aura:if isTrue="{! v.isEmailToValidate  }">                        
+                                <lightning:button label="Cancel" 
+                                                  title="Cancel"
+                                                  onclick="{! c.handleCancel }"
+                                                  class=""/>
+                                
+                            </aura:if>                    
+                            <aura:if isTrue="{! !v.isEmailToValidate  }">
+                                <lightning:button variant="brand"
+                                                  label="Close" 
+                                                  title="Close"
+                                                  onclick="{! c.handleCancel }"/>
+                                <aura:set attribute="else">
+                                    <aura:if isTrue="{! !v.sentEmail }">
+                                        <lightning:button aura:id="send-email"
+                                                          variant="brand" 
+                                                          label="Send Email"
+                                                          title="Send Email" 
+                                                          onclick="{! c.sendEmail }" disabled="{! v.isCaseLinkedDisable == true ? true : v.sentEmail == true }" />
+                                        <aura:set attribute="else">
+                                            <lightning:button variant="brand" 
+                                                              label="Verify Account"
+                                                              title="Verify Account" 
+                                                              disabled="{! empty(v.verificationCode) }"
+                                                              onclick="{! c.doVerification }" />
+                                        </aura:set>
+                                    </aura:if>    
+                                </aura:set>
+                            </aura:if>
+                            
+                        </div>
+                    </div>
+                </div>                
+            </section>
+        </aura:if>
+        <aura:if isTrue="{! and(v.variant=='modal', v.isOpen) }">
+            <c:ParentModal isModalOpen="{! v.isOpen }">
+                <aura:set attribute="title">
+                    <div class="class-1 text-bold">
+                        <aura:if isTrue="{! !v.isEmailToValidate }">
+                            All Methods Failed                            
+                            <aura:set attribute="else">
+                                <aura:if isTrue="{! empty(v.failedEmailObj) }">
+                                    Account Verification
+                                    <aura:set attribute="else">
+                                        {! v.failedEmailObj.typeText } Failed
+                                    </aura:set>
+                                </aura:if>
+                            </aura:set>
+                        </aura:if>
+                    </div>
+                </aura:set>
+                <aura:set attribute="content">
+                    <div class="slds-p-bottom_medium slds-text-body_small">
+                        <aura:if isTrue="{! v.sentEmail == false }">
+                            <aura:if isTrue="{! !v.isEmailToValidate }">
+                                All pin number attempts have failed for this method. Please read the Failed AOV script below to the player.
+                                <aura:set attribute="else">
+                                    <aura:if isTrue="{! empty(v.failedEmailObj) }">
+                                        Based on this players history, use the recommended method to verify account ownership
+                                        <aura:set attribute="else">
+                                            You have used all of the process attempts to verify using {! v.failedEmailObj.typeText }. Please try another email on file to verify.
+                                        </aura:set>
+                                    </aura:if>
+                                </aura:set>
+                            </aura:if>
+                            <aura:set attribute="else">
+                                A Verification email has been sent, the player will need to read over the Pin number and will have 3 attempts before trying another method.
+                            </aura:set>
+                        </aura:if>
+                    </div>                    
+                    
+                    <aura:if isTrue="{! !v.isEmailToValidate  }">
+                        <div class="class-3">
+                            Thanks for sticking with me while I looked into the issue.
+                            <br/>
+                            <br/>
+                            I couldn't verify that you own this account based on the info you gave me.
+                            <br/>
+                            To confirm that you're the account owner, we need specific details when we recover accounts. We want to make sure we're not compromising your account security, so we can't help out with the issue right now.
+                            <br/><br/>
+                            If you remember your account information later, you can resume this case on EA Help at help.ea.com/my-cases/ or click Contact Us on any help.ea.com page to start a new case.
+                            <br/><br/>
+                            You can also look for answers on EA Help and Answers HQ.
+                            <br/><br/>
+                            Is there anything else I can help you with today?
+                        </div>                        
+                        <aura:set attribute="else">
+                            <aura:iteration items="{!v.emails}" var="row">
+                                <aura:if isTrue="{! row.isAllowedForVerification }" >
+                                    <div class="slds-grid slds-gutters email">
+                                        <div class="slds-col slds-size_1-of-12 class-4">
+                                            <div class="class-5">
+                                                <aura:if isTrue="{! row.isSuspicious }">
+                                                    <span class="warning">
+                                                        <lightning:icon iconName="utility:warning" alternativeText="Warning!" size="xx-small"/>
+                                                    </span>                                                    
+                                                    
+                                                    <aura:set attribute="else">
+                                                        <lightning:input type="radio" 
+                                                                         label="" 
+                                                                         name="emails" 
+                                                                         value="{! row }" 
+                                                                         checked="{! row.isSelected }"
+                                                                         variant="label-hidden"                                                                 
+                                                                         onchange="{! c.onSelect }"
+                                                                         disabled="{! v.sentEmail == true }"/>
+                                                    </aura:set>
+                                                </aura:if>        
+                                            </div>
+                                        </div>
+                                        <div class="slds-col slds-size_11-of-12">
+                                            <div class="slds-p-bottom_xx-small slds-text-body_small">
+                                                <span>{! row.typeText }</span>
+                                                <aura:if isTrue="{! and(row.isRecommended, not(v.sentEmail)) }">
+                                                    <span class="class-6">Recommended</span>
+                                                </aura:if>
+                                            </div>
+                                            <div><strong>{! row.email }</strong></div>
+                                            <aura:if isTrue="{!row.updatedOn}">
+                                                date....{!row.updatedOn}
+                                                <div>last updated <lightning:relativeDateTime value="{!row.updatedOn}"/></div>
+                                            </aura:if>                                
+                                        </div>
+                                    </div>
+                                </aura:if>
+                            </aura:iteration>  
+                        </aura:set>
+                        
+                    </aura:if>
+                    
+                    <aura:if isTrue="{! v.sentEmail }">                        
+                        <div class="slds-grid slds-p-top_large slds-p-bottom_small">
+                            <div class="slds-col slds-size_1-of-1 slds-p-left_none slds-p-right_none">
+                                <lightning:input label="Verification Code" value="{! v.verificationCode }" 
+                                                 class="{! join(
+                                                        lessthan(v.numberOfAttemptLeft, 4) ? 'slds-has-error' : '',
+                                                        ' ',
+                                                        'verification-input'
+                                                        )}"/>                                
+                                <aura:if isTrue="{! lessthan(v.numberOfAttemptLeft, 4) }">
+                                    <div class="slds-p-top_x-small class-7">
+                                        *Incorrect pin, you have {! v.numberOfAttemptLeft } attempts remaining
+                                    </div>
+                                </aura:if>                                
+                                <aura:if isTrue="{! v.isLastEmailToValidate }">
+                                    <lightning:input type="checkbox" label="Set up TFA with email account" checked="{! v.sendArticle }" class="slds-p-top_medium"/>
+                                    <aura:set attribute="else">
+                                        <lightning:input type="checkbox" label="Send Knowledge article on how to setup TFA" checked="{! v.sendArticle }" class="slds-p-top_medium"/>
+                                    </aura:set>
+                                </aura:if>                              
+                            </div>                            
+                        </div>
+                    </aura:if>
+                </aura:set>
+                <aura:set attribute="successBtn">
+                    <aura:if isTrue="{! !v.isEmailToValidate  }">
+                        <lightning:button variant="brand"
+                                          label="Close" 
+                                          title="Close"
+                                          onclick="{! c.handleCancel }"/>
+                        <aura:set attribute="else">
+                            <aura:if isTrue="{! !v.sentEmail }">
+                                <lightning:button variant="brand" 
+                                                  label="Send Email"
+                                                  title="Send Email" 
+                                                  onclick="{! c.sendEmail }"
+                                                  disabled="{!v.isSpinner}" />
+                                <aura:set attribute="else">
+                                    <lightning:button variant="brand" 
+                                                      label="Verify Account"
+                                                      title="Verify Account" 
+                                                      disabled="{! empty(v.verificationCode) }"
+                                                      onclick="{! c.doVerification }" />
+                                </aura:set>
+                            </aura:if>    
+                        </aura:set>
+                    </aura:if>
+                </aura:set>
+                <aura:set attribute="cancelBtn"><div></div></aura:set>
+                <aura:set attribute="class" value="modal-small"/>
+                <aura:set attribute="showSpinner" value="{!v.isSpinner}"/>
+            </c:ParentModal>
+        </aura:if>
+    </div>
+</aura:component>

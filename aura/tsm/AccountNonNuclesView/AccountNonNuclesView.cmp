@@ -1,0 +1,113 @@
+<aura:component controller="CaseInfoAuraController" >
+    
+    <aura:attribute name="accountId" type="String" access="public"/>
+    <aura:attribute name="caseId" type="String" access="public"/>
+    
+    <aura:attribute name="accountDetail" type="Map" access="private"/>
+    <aura:attribute name="caseDetail" type="Map" access="private"/>
+    
+    <aura:attribute name="newAccount" type="Map" access="private" default="{}"/>
+    
+    <aura:attribute name="isLoading" type="Boolean" access="private"/>
+    <aura:attribute name="isSaving" type="Boolean" access="private" default="false" />
+    
+    <aura:attribute name="isOpenCreateModal" type="Boolean" access="private" default="false" />
+    
+    <ltng:require scripts="{! $Resource.Util }" afterScriptsLoaded="{!c.doInit}" />    
+    <aura:handler name="change" value="{!v.accountId}" action="{!c.doInit}" />
+    
+    <aura:registerEvent name="onSaveAccount" type="c:RefreshAccount" />
+    
+    
+    <div class="slds-is-relative" style="min-height: 300px;">
+        <aura:if isTrue="{! v.isLoading }">
+            <lightning:spinner variant="brand" size="small"/>
+            <aura:set attribute="else">
+                <div class="slds-p-bottom_small adding-truncation">
+                    <span class="slds-text-heading_small text-style-bold">{!v.accountDetail.fullName || 'Anonymous Caller' }</span>
+                </div>
+                
+                <!-- start: TSM-2578 -->
+                <div class="slds-p-bottom_medium">
+                    <aura:if isTrue="{! v.caseId }">
+                        <div class="slds-text-body_small" style="color: #161616;">Case Created From</div>            
+                        <div>
+                            <!-- Case from IVR -->
+                            <aura:if isTrue="{!v.caseDetail.origin=='IVR'}">
+                                <aura:iteration items="{!v.caseDetail.caseInteractionDetails}" var="item" indexVar="index">                                    
+                                    <div class="slds-text-title_bold">{! item.aniCallerId }</div>                                    
+                                </aura:iteration>
+                                
+                                <aura:if isTrue="{! v.caseDetail.country }">
+                                    <span class="slds-text-body_small">
+                                        {! v.caseDetail.country }
+                                    </span>
+                                </aura:if>
+                                
+                                <!-- Case from EA help -->
+                                <aura:set attribute="else">
+                                    <div class="slds-text-title_bold">{! v.accountDetail.personEmail }</div>
+                                    <div>
+                                        <aura:if isTrue="{! v.caseDetail.country }">
+                                            <span class="slds-text-body_small">
+                                                {! v.caseDetail.country }
+                                            </span>                                    
+                                        </aura:if>
+                                        <aura:if isTrue="{!v.caseDetail.caseIpAdress}">
+                                            ({!v.caseDetail.caseIpAdress})
+                                        </aura:if>
+                                    </div>
+                                </aura:set>                                
+                            </aura:if>                 
+                        </div>
+                    </aura:if>
+                </div>
+                <!-- end: TSM-2578 --> 
+                <div class="slds-border_top">
+                    <aura:if isTrue="{!v.accountDetail.accountId}">
+                        <div class="slds-text-align_center slds-p-top_xx-large">
+                            <div class="slds-text-heading_medium" style="font-weight: bold;">This is a Salesforce account</div>
+                            <div class="slds-p-top_x-small"> To use another account, use Global Search to find an existing account</div>
+                        </div>
+                        <aura:set attribute="else">
+                            <div class="slds-text-align_center slds-p-top_xx-large">
+                                <div class="slds-text-heading_medium" style="font-weight: bold;">No account found for this contact</div>
+                                <div class="slds-p-top_x-small">Search for an account globally or <a onclick="{!c.openCreateModal}">Create a new account</a></div>
+                            </div>  
+                        </aura:set>
+                    </aura:if>
+                    
+                </div>
+            </aura:set>
+        </aura:if>
+    </div>
+    
+    
+    
+    
+    <aura:if isTrue="{!v.isOpenCreateModal}">
+        <c:ParentModal isModalOpen="{!v.isOpenCreateModal}" clickClose="false" success="Create">
+            <aura:set attribute="title">
+                <b>Create New Salesforce Account</b>
+            </aura:set>
+            <aura:set attribute="content">
+                <lightning:layout multipleRows="true">
+                    <lightning:layoutItem size="6" class="slds-p-around_xx-small">
+                        <lightning:input aura:id="field" value="{!v.newAccount.firstName}" label="First Name" />
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="6" class="slds-p-around_xx-small">
+                        <lightning:input aura:id="field" value="{!v.newAccount.lastName}" label="Last Name" />
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="12" class="slds-p-around_xx-small">
+                        <lightning:input aura:id="field" type="email" value="{!v.newAccount.email}" label="Email" required="true" />
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="12" class="slds-p-around_xx-small">
+                        <lightning:input aura:id="field" type="tel" value="{!v.newAccount.phone}" label="Phone(Optional)" />
+                    </lightning:layoutItem>
+                </lightning:layout>   
+            </aura:set>
+            <aura:set attribute="onSuccess" value="{!c.handleCreateClick}"/>
+            <aura:set attribute="showSpinner" value="{!v.isSaving}"/>
+        </c:ParentModal>
+    </aura:if>
+</aura:component>

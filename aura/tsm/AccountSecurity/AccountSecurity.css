@@ -1,0 +1,105 @@
+.THIS .green {
+    background-color: #40C912;
+}
+
+.THIS .part-1 {
+    /*border : 1px solid;*/
+    cursor : pointer;
+}
+
+.THIS .account-security {
+    padding: 0.5rem; 
+}
+
+
+.THIS .warning {
+    background-color: #D0021B; /*#fe8f60;*/
+    border-radius: 50%; 
+    display: inline-block;
+}
+
+
+.THIS .warning svg {
+    fill : white;    
+    /*background: #ff7373;*/
+    color: white;
+    /*border-radius: 50%;*/
+    padding: 2px;    
+}
+
+
+/*
+.THIS .account-security svg {
+    padding: 5px;
+    width: 2.5rem;
+    height: 2.5rem;
+}
+*/
+
+
+.THIS .center{
+    text-align : center;
+}
+
+.THIS .title {
+    /*margin-top: 10px;*/
+    font-size: 11px;
+}
+
+.THIS .part-2 {
+    position: absolute;
+    /*right: -10px; handled the right shift in parent component*/
+}
+
+.THIS .part-2 .email {
+   /* margin-top: 10px;*/
+}
+
+.THIS .verification-input:before {
+    
+}
+
+.THIS .class-1 {
+    font-size: medium;
+    /*margin: 5px 0;*/
+}
+
+/*.THIS .part-2 .class-2 {
+    margin: 10px 0;
+}*/
+
+.THIS .class-3 {
+    font-size: 13px; 
+    font-style: italic;
+}
+
+.THIS .class-4 {
+    position: relative;
+}
+
+.THIS .class-5 {
+    position: absolute; 
+    top: 30%;
+}
+
+.THIS .class-6 {
+    margin-left: 25px; 
+    color: #0070D2; /*blue;*/
+    font-weight: bold;
+}
+
+.THIS .class-7 {
+    color:red
+}
+
+.THIS .class-8 {
+    text-align: right;
+}
+.THIS .remove-label label{
+    display:none;
+}
+.THIS .other-verification-recommended {
+    margin-left: 20px; 
+    color: #0070D2; /*blue;*/
+    font-weight: bold;
+}

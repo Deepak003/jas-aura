@@ -1,0 +1,28 @@
+{
+  "name": "istanbul-code-coverage-example",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "jasmine",
+    "test-cover": "sudo istanbul cover --root './aura/tsm/AccountBasicInfo' --include-all-sources spec/specs.js && istanbul check-coverage"
+  },
+  "keywords": [
+    "istanbul"
+  ],
+  "author": "Tal Kaminsky",
+  "license": "MIT",
+  "devDependencies": {
+    "istanbul": "^0.4.5",
+    "jasmine": "^2.8.0",
+    "jasmine-console-reporter": "^2.0.1",
+    "jasmine-node": "^3.0.0",
+    "jasmine-supertest": "^1.0.0",
+    "supertest": "^3.0.0"
+  },
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "express": "^4.17.1"
+  }
+}
