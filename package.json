@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "test": "jasmine",
-    "test-cover": "sudo istanbul cover --root './aura/tsm/AccountBasicInfo' --include-all-sources spec/specs.js && istanbul check-coverage"
+    "test-cover": "sudo istanbul cover --root './aura' --include-all-sources spec/specs.js && istanbul check-coverage"
   },
   "keywords": [
     "istanbul"
