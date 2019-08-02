@@ -1,5 +1,5 @@
-function AddSubscriptionHelper(){	this.doInitHelper  =  function(component, event, helper) {
-
+		({
+    doInitHelper : function(component, event, helper) {
         var billingAccounts = component.get('v.billingAccList');
         var result =[];
         for(let i=0; i < billingAccounts.length; i++){
@@ -22,6 +22,7 @@ function AddSubscriptionHelper(){	this.doInitHelper  =  function(component, even
                 resArr['cardNumber'] = billingAccounts[i].cardNumber;
                 result.push(resArr);
             }
+            
             /*if(billingAccounts[i].cardNumber != '' ){
                 resArr['label'] =  billingAccounts[i].type + ' ('+ cardNo +') '
                   + 'Exp '+ billingAccounts[i].expirationMonth +'/'+billingAccounts[i].expirationYear;
@@ -31,8 +32,7 @@ function AddSubscriptionHelper(){	this.doInitHelper  =  function(component, even
         }
         component.set('v.billingAccount', result);
     },
-	this.fetchOriginSubscriptionTypesHelper =  function(component, event, helper) {
-
+    fetchOriginSubscriptionTypesHelper: function(component, event, helper) {
         var action = component.get("c.fetchOriginSubscriptionTypes"); 
         action.setCallback(this, function(response) {
             var state = response.getState();
@@ -50,8 +50,7 @@ function AddSubscriptionHelper(){	this.doInitHelper  =  function(component, even
         });
         $A.enqueueAction(action);
     },
-	this.fetchCost =  function(component, event, helper){
-
+    fetchCost: function(component, event, helper){
         var action = component.get("c.fetchCostOfNewSubscription");
         action.setParams({
             newOfferId: component.find("memberActions").get("v.value"),
@@ -61,6 +60,7 @@ function AddSubscriptionHelper(){	this.doInitHelper  =  function(component, even
             var state = response.getState();
             var storeResponse = response.getReturnValue();
             if (state === "SUCCESS") {
+                // component.set("v.membershipCost" , storeResponse);
                 var strToBeAppended = '/Month*';
                 var membershipCost = storeResponse;
                 var formattedMembershipCost = membershipCost+strToBeAppended
@@ -69,8 +69,7 @@ function AddSubscriptionHelper(){	this.doInitHelper  =  function(component, even
         });
         $A.enqueueAction(action);
     },
-	this.helperonConfirm =  function(component, event, helper) {
-
+    helperonConfirm: function(component, event, helper) {
         var getRequestMap = {};
         getRequestMap["offerId"] = component.get("v.memberActionVal");
         getRequestMap["offerName"] = component.get("v.memberActionLabel");
@@ -82,6 +81,7 @@ function AddSubscriptionHelper(){	this.doInitHelper  =  function(component, even
 		getRequestMap["isCreateCRMEvent"] = 'TRUE';
         getRequestMap["newMembershipPrice"] = component.get("v.membershipCost");
         getRequestMap["accountId"] = component.get('v.accountId');
+
         var action = component.get("c.purchaseNewOriginSubsription");
          action.setParams({ 
              mapRequestParams : getRequestMap
@@ -116,22 +116,24 @@ function AddSubscriptionHelper(){	this.doInitHelper  =  function(component, even
         });
         $A.enqueueAction(action);
     },
-	this.onChangeActionHelper  =  function(component, event, helper){
-
+    onChangeActionHelper : function(component, event, helper){
         if ( component.find("memberActions").get("v.value") != null ) {
             var billingAccountId = '';            
             var billingAccounts = component.get('v.billingAccList');
             console.log(billingAccounts);
             var result =[];
             console.log(billingAccounts.length);
+            
             for ( let i=0; i < billingAccounts.length; i++ ) {
                 if ( billingAccounts[i].billingAccountType == 'EACashWallet' ) {
                    billingAccountId = billingAccounts[i].id;
                 }
             }
+            
             if ( billingAccountId != '' ) {
                 var action = component.get("c.fetchCostOfNewSubscription");
                 console.log(component.find("memberActions").get("v.value"));
+                
                 action.setParams({
                     newOfferId: component.find("memberActions").get("v.value"),
                     billingAccountId: billingAccountId
@@ -144,6 +146,7 @@ function AddSubscriptionHelper(){	this.doInitHelper  =  function(component, even
                         console.log(storeResponse);
                         component.set("v.membershipCost" , storeResponse);                        
                         var membershipCost = storeResponse;
+                        
                         for ( let i=0; i < billingAccounts.length; i++ ) {
                             var resArr={};
                             var cardNo = billingAccounts[i].accountNumber.substr(billingAccounts[i].accountNumber.length - 4 , 
@@ -166,11 +169,13 @@ function AddSubscriptionHelper(){	this.doInitHelper  =  function(component, even
                                 result.push(resArr);
                             }
                         }            
+                        
                         console.log(result);
                         component.set('v.billingAccount', result);
                     }
                 });
                 $A.enqueueAction(action);           
+                
             }
         }
          console.log('onChangeActionHelper billing action ::: '+ component.find("billingActions").get("v.value"));
@@ -182,5 +187,4 @@ function AddSubscriptionHelper(){	this.doInitHelper  =  function(component, even
             component.set('v.enableNextButton',true);
         }
     }
-}
-module.exports = new AddSubscriptionHelper();
+})

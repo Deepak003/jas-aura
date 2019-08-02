@@ -1,5 +1,5 @@
-function AccountNonNuclesViewHelper(){	this.fetchAccount  =  function(component) {
-
+({
+	fetchAccount : function(component) {
 		const action = component.get("c.getCaseAccountDetails");  
         action.setParams({
             strAccountId : component.get("v.accountId"),
@@ -11,6 +11,7 @@ function AccountNonNuclesViewHelper(){	this.fetchAccount  =  function(component)
             const state = response.getState();
             if (state === "SUCCESS") {
                 const storeResponse = response.getReturnValue();
+                
                 /*
                 storeResponse.caseDetail.accountId = undefined;
                 storeResponse.accountDetail.fullName = undefined
@@ -19,6 +20,7 @@ function AccountNonNuclesViewHelper(){	this.fetchAccount  =  function(component)
                     aniCallerId: '(888) 87-8888'
                 });
                 */
+                
                 component.set('v.accountDetail', storeResponse.accountDetail || {});                
                 component.set('v.caseDetail', storeResponse.caseDetail || {});
             }else{
@@ -27,8 +29,7 @@ function AccountNonNuclesViewHelper(){	this.fetchAccount  =  function(component)
         });
         $A.enqueueAction(action);
 	},
-	this.createAccount  =  function(component) {
-
+    createAccount : function(component) {
         const action = component.get("c.createSFAccount");
         action.setParams({ strData : JSON.stringify(component.get("v.newAccount")), strCaseId : component.get("v.caseId") });
         component.set("v.isSaving", true);
@@ -44,5 +45,4 @@ function AccountNonNuclesViewHelper(){	this.fetchAccount  =  function(component)
         });
         $A.enqueueAction(action);
     }
-}
-module.exports = new AccountNonNuclesViewHelper();
+})

@@ -1,37 +1,32 @@
-function AccountSecurityController(){	this.doInit  =  function(component, event, helper) {
-
+({
+    doInit : function(component, event, helper) {
         helper.fetchEmails(component);   
     },
-	this.sendEmail  =  function(component, event, helper) {
-
+    sendEmail : function(component, event, helper) {
         helper.sendEmail(component);
     },
-	this.doVerification  =  function(component, event, helper) {
-
+    doVerification : function(component, event, helper) {
         helper.doVerification(component);
     },
-	this.handleCancel  =  function(component, event, helper) {
-
+    handleCancel : function(component, event, helper) {
         helper.close(component);
     },
-	this.toggleOpen  =  function(component, event, helper) {
-
+    toggleOpen : function(component, event, helper) {
         component.set("v.isOpen", !component.get("v.isOpen"));
     },
-	this.onSelect  =  function(component, event, helper) {
-
+    onSelect : function(component, event, helper) {        
         helper.onSelect(component, event);
+        //Setting disable false by default
         var sendEmail = component.find("send-email");
         sendEmail.set("v.disabled" , false);
         component.set("v.isHistoryEmail", false);
     },
-	this.onSentEmail  =  function(component, event, helper) {
-
+    onSentEmail : function(component, event, helper) {
+        // setting failedEmailObj to empty
         component.set("v.failedEmailObj", {});
         helper.onSentEmail(component);
     },
-	this.onChangeEmails  =  function(component, event, helper) {
-
+    onChangeEmails : function(component, event, helper) {
         const validEmails = component.get("v.emails").filter((e)=>!e.isSuspicious);     
         if(validEmails.length == 0){
             component.set("v.isEmailToValidate", false);
@@ -39,8 +34,8 @@ function AccountSecurityController(){	this.doInit  =  function(component, event,
             component.set("v.isLastEmailToValidate", true);
         }            
     },
-	this.onHistorySelect =  function(component, event, helper) {
-
+    //TSM - 1933 Adding logic for handling the history email select
+    onHistorySelect: function(component, event, helper) {
         var emails = component.get("v.emails");
         var sendEmail = component.find("send-email");
         var currentSelection = component.get("v.selectedHistoryEmail");
@@ -48,21 +43,22 @@ function AccountSecurityController(){	this.doInit  =  function(component, event,
             e.isSelected = false;
         })
         component.set("v.isHistoryEmail", true);
+        //Check for button for enable or disable
         if(currentSelection != ""){
             sendEmail.set("v.disabled" , false);
         }else{
             sendEmail.set("v.disabled" , true);
         }
     },
-	this.toggleDisable =  function(component, event, helper) {
-
+    //TSM - 1933 Adding logic for handling the button disable
+    toggleDisable: function(component, event, helper) {
         var currentSelection = component.get("v.selectedHistoryEmail");
         var sendEmail = component.find("send-email");
+        //Check for button for enable or disable
         if(currentSelection != ""){
             sendEmail.set("v.disabled" , false);
         }else{
             sendEmail.set("v.disabled" , true);
         }
     },
-}
-module.exports = new AccountSecurityController();
+})

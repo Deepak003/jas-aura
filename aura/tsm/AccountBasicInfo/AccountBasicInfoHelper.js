@@ -1,17 +1,18 @@
-function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,event) {
-
+({
+    accordianToggle : function(component,event) {
         var acc = component.find('socialAccordian');
         for(var eachObject in acc) {
             $A.util.toggleClass(acc[eachObject], 'slds-show');  
             $A.util.toggleClass(acc[eachObject], 'slds-hide');  
         }
     },
-	this.searchCustomerData  =  function(component,event,helper) {
-
+    searchCustomerData : function(component,event,helper) {
         var action, parameterObject;
         var dropdownConfig={};
         helper.showSpinner(component,event);
+        //Creating a tost object
         var toastEvent = $A.get("e.force:showToast");
+        //Handeling both the object trigger
         if(component.get("v.isAccountObject")){
             action = component.get("c.searchCustomerDataByAccountId"); 
             parameterObject = component.get("v.accountId");
@@ -27,17 +28,21 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
             helper.hideSpinner(component,event);
             if (state === "SUCCESS") {
                 var storeResponse = response.getReturnValue();
+                //Storing to the model
                 var formattedString = JSON.parse(storeResponse).response[0];
                 if(formattedString.dateCreated != null){
                     formattedString.dateCreated = formattedString.dateCreated.split("T")[0];
                 }
+                //Modifying the string for language and country
                 if(formattedString.language !=null){
                     dropdownConfig["language"]=formattedString.language.split("_")[0]; 
                     dropdownConfig["language"]=formattedString.language.split("_")[0];               
                     dropdownConfig["currentLanguage"] = component.get("v.WWCE")["Languages"][dropdownConfig.language];
                     dropdownConfig["currentCountry"] = component.get("v.WWCE")["Countries"][formattedString.country];
+                    //Setting the temp language initially
                     component.set("v.tempLanguage", dropdownConfig.language);
                 }
+                //Checking for user value none
                 if(formattedString.userValue == "none"){
                     formattedString.userValue == "NONE";
                     formattedString.oldCustomerValue = formattedString.userValue;
@@ -49,6 +54,7 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
 				component.set("v.newDob",newDob);
                 component.set("v.oldModel", JSON.stringify(formattedString));
                 component.set("v.oldCustomerValue", formattedString.oldCustomerValue);
+                //Turning on the flags for the toggle
                 component.set("v.optInGlobal", formattedString.globalOptin);
                 component.set("v.optInThirdParty", formattedString.thirdPartyOptin);
                 if(formattedString.globalOptin == 'true'){
@@ -59,14 +65,17 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
                     var optInThirdParty = component.find('optInThirdPartyToggle');
                     optInThirdParty.set('v.checked', true);
                 }       
+                //Formatting the persona string
                 var listOfPerson = JSON.parse(storeResponse).response[0].personas;
                 component.set("v.personaData", listOfPerson);
                 component.set("v.selectConfig", dropdownConfig);
                 component.set("v.oldLanguage", dropdownConfig.language);
                 component.set('v.toResetPasswordEmail', formattedString.email);               
             }
+			
 			else{
                 var errorMessage = response.getError();
+                //Adding failure toast
                 toastEvent.setParams({
                     message: errorMessage[0].message,
                     type: "error"
@@ -76,35 +85,45 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
         });
         $A.enqueueAction(action);
     },
-	this.saveCustomer =  function(component, event,helper) {
-
+    
+    saveCustomer: function(component, event,helper) {
         if(component.get("v.oldCustomerValue") != component.get("v.accountDetailsModel").userValue){
             helper.updateCustomerFlag(component,event,helper);
         }else{
             helper.saveAccountData(component,event,helper); 
         }  
     },
-	this.saveAccountData  =  function(component,event,helper, callback) {
-
+    
+    saveAccountData : function(component,event,helper, callback) {
         var action = component.get("c.saveCustomer");
         var changeModel = component.get("v.accountDetailsModel");
+        //Select the new country/language in the model
         component.get("v.selectConfig").currentCountry = component.get("v.WWCE")["Countries"][component.get("v.accountDetailsModel").country];
         component.get("v.selectConfig").currentLanguage = component.get("v.WWCE")["Languages"][component.get("v.tempLanguage")];
         changeModel.language = component.get("v.tempLanguage")+'_'+component.get("v.accountDetailsModel").country;
+        
+        //Creating a tost object
         var toastEvent = $A.get("e.force:showToast");
         if(component.get("v.Spinner") != true && component.get("v.parentEmailFlag") != true){ //TSM-3843 for the 2nd Condition
             helper.showSpinner(component,event);
         }   
+        
+        //Condition to parse email  
         if(changeModel.email != null){
             changeModel.email = encodeURIComponent(changeModel.email);
         }
+        
         if(changeModel.parentalEmail != null){
             changeModel.parentalEmail = encodeURIComponent(changeModel.parentalEmail);
         }
+        
         if(changeModel.secondaryEmail != null){
             changeModel.secondaryEmail = encodeURIComponent(changeModel.secondaryEmail);
         }  
+        
+        //Parsing the data to map - As part of Spring 19 release salesforce issue
         changeModel = JSON.stringify(changeModel);
+        
         action.setParams({
             data : changeModel,
             caseId : component.get("v.caseId"),
@@ -112,11 +131,14 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
         });
         action.setCallback(this, function(response) {
             var state = response.getState();
+            //Hiding the spinner
             helper.hideSpinner(component,event);
             if (state === "SUCCESS") {
+                //Calling update customer flag function
                 component.set("v.updateFlag", "true");
 				component.set("v.openUnderAgeModal",false);
                     component.set("v.openSpinner",false);
+                //Adding success toast
                 toastEvent.setParams({
                     message: "Account Info Edit Complete",
                     type: "success"
@@ -125,18 +147,20 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
 				component.getEvent("onSaveAccount").fire();
             }else{
                 var errorMessage = response.getError();
+                //Adding failure toast
                 toastEvent.setParams({
                     message: errorMessage[0].message,
                     type: "error"
                 });
                 toastEvent.fire();                
+                //Loading the Account Info again to refresh the UI
                 this.searchCustomerData(component,event,helper);
             }
         });
         $A.enqueueAction(action);
     },
-	this.resetPasswordEmail  = function(component,event,helper){
-
+    // TSM 1912
+    resetPasswordEmail :function(component,event,helper){
         var caseObject = component.get('v.caseObj');
         var action = component.get("c.resetPasswordForCustomer");
         var mapResetPassword = {};
@@ -164,14 +188,20 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
          action.setParams({
            mapResetPasswordDetails : mapResetPassword
         });
+        //component.set('v.isResetPasswordOpen', false);
+        //helper.showSpinner(component,event);
         component.set('v.isLoading', true);
         action.setCallback(this, function(response){
             component.set('v.isLoading', false);
+            //helper.hideSpinner(component,event);
             var state = response.getState();
+            //var successDetails = JSON.parse(response.getReturnValue());
             if (state === "SUCCESS"){
+                //Util.handleSuccess(component, 'A Reset Password email has been sent1');
                 var responseObject = response.getReturnValue();
 				var parseResponse = JSON.parse(response.getReturnValue());
                 var isSendEmail = parseResponse.response[0].isSendEmail;
+				
 				var toastEvent = $A.get("e.force:showToast");
                 if( (channel != 'Email' || channel == 'account') && isSendEmail == true){
                     toastEvent.setParams({
@@ -189,6 +219,7 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
                         type: 'success',
                     });
                     toastEvent.fire();
+					// Needed for Email type of email to send outbound details via component event.
 					var outboundEmailDetails = component.getEvent("sendOutboundEmailIdEvt");
                     outboundEmailDetails.setParams({
                         "outbountEmailVO" : parseResponse.response[0]
@@ -210,8 +241,7 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
         });
         $A.enqueueAction(action);
     },
-	this.updateCustomerFlag  =  function(component,event,helper) {
-
+    updateCustomerFlag : function(component,event,helper) {
         var action = component.get("c.updateCustomerFlagData");     
         var updateFlagData = {};
         var changeModel = component.get("v.accountDetailsModel");
@@ -222,6 +252,7 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
         updateFlagData["action"] = "updateAccountFlag"; 
         var accountEdit = component.get('v.accountInfoChange');
         var toastEvent = $A.get("e.force:showToast");
+        //Starting spinner
         helper.showSpinner(component,event);
         action.setParams({
             flagUpdateData : updateFlagData,
@@ -234,8 +265,11 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
                 if(accountEdit){
                     helper.saveAccountData(component,event,helper);
                 }else{
+                    //Calling update customer flag function
                     component.set("v.updateFlag", "true");
+                    //Hiding the spinner
                     helper.hideSpinner(component,event);
+                    //Adding success toast
                     toastEvent.setParams({
                         message: "Account Info Edit Complete",
                         type: "success"
@@ -243,7 +277,9 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
                     toastEvent.fire();
                 }             
             }else{
+                //Hiding the spinner
                 helper.hideSpinner(component,event);
+                //Adding success toast
                 toastEvent.setParams({
                     message: "Account Info Edit Failed",
                     type: "error"
@@ -253,24 +289,24 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
         });
         $A.enqueueAction(action);
     },
-	this.showSpinner =  function(component, event) {
-
+    
+    showSpinner: function(component, event) {
         component.set("v.Spinner", true); 
     },
-	this.hideSpinner  =  function(component,event){
-
+    
+    hideSpinner : function(component,event){ 
         component.set("v.Spinner", false);
     },
-	this.showSocialSpinner =  function(component, event) {
-
+    
+    showSocialSpinner: function(component, event) {
         component.set("v.socialSpinner", true); 
     },
-	this.hideSocialSpinner  =  function(component,event){
-
+    
+    hideSocialSpinner : function(component,event){ 
         component.set("v.socialSpinner", false);
     },
-	this.populateWWCEObjects  =  function(component,event, helper){
-
+    
+    populateWWCEObjects : function(component,event, helper){
         var WWCE={
             "States": {
                 'AL':'Alabama','AK':'Alaska','AZ':'Arizona','AR':'Arkansas','CA':'California', 'CO':'Colorado','CT':'Connecticut','DE':'Delaware','FL':'Florida','GA':'Georgia','HI':'Hawaii','ID':'Idaho','IL':'Illinois','IN':'Indiana','IA':'Iowa','KS':'Kansas','KY':'Kentucky','LA':'Louisiana','ME':'Maine','MD':'Maryland','MA':'Massachusetts','MI':'Michigan','MN':'Minnesota','MS':'Mississippi','MO':'Missouri','MT':'Montana','NE':'Nebraska', 'NV':'Nevada','NH':'New Hampshire','NJ':'New Jersey','NM':'New Mexico','NY':'New York','NC':'North Carolina','ND':'North Dakota','OH':'Ohio','OK':'Oklahoma','OR':'Oregon','PA':'Pennsylvania', 'RI':'Rhode Island','SC':'South Carolina','SD':'South Dakota','TN':'Tennessee','TX':'Texas','UT':'Utah','VT':'Vermont', 'VA':'Virginia','WA':'Washington', 'WV':'West Virginia','WI':'Wisconsin','WY':'Wyoming'
@@ -288,6 +324,7 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
             }
         }
         component.set("v.WWCE", WWCE);
+        //Consructing option and lables from the list for countries
         var countryArray=[]
         for(var eachKey in Object.keys(WWCE["Countries"])){
             var countryMap={};
@@ -295,6 +332,7 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
             countryMap["label"]=WWCE["Countries"][countryMap["value"]];
             countryArray.push(countryMap);
         }
+        //Construction of map for language from the list of languages
         var languageArray=[]
         for(var eachKey in Object.keys(WWCE["Languages"])){
             var languageMap={};
@@ -305,8 +343,7 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
         component.set("v.countryList", countryArray); 
         component.set("v.languageList", languageArray); 
     },
-	this.optInSave =  function(component, event, helper, globalOptin, thirdPartyOptin,optTypeMessage) {
-
+    optInSave: function(component, event, helper, globalOptin, thirdPartyOptin,optTypeMessage) {
         var action = component.get("c.saveOptIn");
         var currentModel = component.get("v.accountDetailsModel");
         var data={};
@@ -330,6 +367,7 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
                 currentModel.globalOptin = formattedString.globalOptin;
                 currentModel.thirdPartyOptin = formattedString.thirdPartyOptin;               
                 helper.hideSocialSpinner(component,event);
+                //Adding success toast
                 toastEvent.setParams({
                     message: optTypeMessage,
                     type: "success"
@@ -339,8 +377,8 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
         });
         $A.enqueueAction(action);    
     },
-	this.setTemporaryPassword =  function(component, helper) {
-
+    //Adding the helper functionality to set temporary password as part of ticket TSM-1318
+    setTemporaryPassword: function(component, helper) {
         var action = component.get("c.setTemporaryPassword");
         var currentModel = component.get("v.accountDetailsModel");
         var temporaryPassword = component.find("temporaryPassword").get("v.value");
@@ -356,6 +394,7 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
             if (state === "SUCCESS") {
                 var storeResponse = response.getReturnValue();
                 component.set('v.isSetTemporaryPasswordOpen', false);
+                //Adding success toast
                 toastEvent.setParams({
                     message: "A temporary password has been created!",
                     type: "success"
@@ -365,8 +404,8 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
         });
         $A.enqueueAction(action);    
     },
-	this.getLinkedAccount =  function(component, event, helper) {
-
+    //Getting linked account
+    getLinkedAccount: function(component, event, helper) {
         var action = component.get("c.getLinkedAccountByEmail");
         var selectedEmail = event.srcElement.innerText;
         var workspaceAPI = component.find("workspace");
@@ -389,6 +428,7 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
                     console.log(error);
                 });
             }else{
+                //Adding success toast
                 toastEvent.setParams({
                     message: "No Account found!",
                     type: "error"
@@ -398,8 +438,8 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
         });
         $A.enqueueAction(action);    
     },
-	this.getAgeRequirements =  function(component, event, helper,fromDob) {
-
+    //Getting age requirements
+    getAgeRequirements: function(component, event, helper,fromDob) {
         var action = component.get("c.getPlayerAgeRequirements");
         var currentModel = component.get("v.accountDetailsModel");
         var currentAge = this.getAge(currentModel.dob);
@@ -410,8 +450,10 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
         action.setCallback(this, function(response) {
             var state = response.getState();
             if (state === "SUCCESS") {
+               
                 const accountforms = component.find("accountform");
                 const isFormAvaialble = Array.isArray(accountforms) && accountforms[3];
+                    
                 if(currentAge <=0 && isFormAvaialble){
                     accountforms[3].setCustomValidity('Invalid Date of Birth');
                 }
@@ -421,15 +463,18 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
                 if(isFormAvaialble){
                     accountforms[3].reportValidity();
                 }
+                
                 var storeResponse = JSON.parse(response.getReturnValue()).response[0];
                 if(currentAge < parseInt(storeResponse.minLegalRegistrationAge)&&currentAge>0&&currentAge!=0){
                     component.set("v.underAgeAccount", true); 
+                    //Adding warning toast
                     toastEvent.setParams({
                         message: "The change will convert the account into a minor account.",
                         type: "warning"
                     });
 					if(fromDob==true)
                     toastEvent.fire();
+                    
                 }else{
                     component.set("v.underAgeAccount", false); 
                 }
@@ -437,8 +482,7 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
         });
         $A.enqueueAction(action);    
     },
-	this.getAge =  function(dateString)
-
+    getAge: function(dateString) 
     {
         var today = new Date();
         var birthDate = new Date(dateString);
@@ -450,8 +494,7 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
         }
         return age;
     },
-	this.enableOrDisableSaveButton =  function(component){
-
+    enableOrDisableSaveButton: function(component){
         var disableSave = component.get('v.disableSave');
         var fname = component.find("accountform")[0].get('v.value'),
             lname = component.find("accountform")[1].get('v.value'),
@@ -460,6 +503,7 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
             country = component.find("accountform")[6].get('v.value'),
             language = component.find("accountform")[7].get('v.value'),
             customerValue = component.find("accountform")[0].get('v.value');
+              
         if(fname !='' && lname !='' && persona !='' && primaryEmail !='' && country !='' && language !=''){
             component.set('v.disableSave', false);
         }
@@ -467,8 +511,10 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
             component.set('v.disableSave', true);
         }
     },
-	this.updateEmailFlag =  function (component, event, helper) {
-
+	
+	//TSM-1931
+    // Checking Email Verified or Not
+	updateEmailFlag: function (component, event, helper) {
         var caseId = component.get("v.caseId");
         var action = component.get("c.updateEmailCaseFlag"); 
         action.setParams({
@@ -482,20 +528,23 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
         });
         $A.enqueueAction(action);
     },
-	this.updateSecondaryEmail  =  function(component, event,helper) {
-
+	
+	updateSecondaryEmail : function(component, event,helper) {
         var action = component.get("c.updateSecondaryEmail");
         var accountDetails = component.get("v.accountDetailsModel");        
         var requestObject = {};
         var toastEvent = $A.get("e.force:showToast");
+		
         requestObject.AccountId = component.get("v.accountId");
         requestObject.customerId = accountDetails.id;
         requestObject.caseId = component.get("v.caseId");
         requestObject.secondaryEmail = encodeURIComponent(accountDetails.secondaryEmail); 
         requestObject.oldSecondaryEmail = component.get("v.secondaryOldEmailValue");
+        
         action.setParams({
             reqParams : requestObject
         });
+
         action.setCallback(this, function(response) {
             var state = response.getState();
             if (state === "SUCCESS") { 
@@ -523,25 +572,29 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
         });
         $A.enqueueAction(action);
 	},
-	this.secondaryEmailVerification  =  function(component, event, helper) {
-
+    
+    secondaryEmailVerification : function(component, event, helper) {
         var action = component.get("c.getSecondaryEmailCode");
         var accountDetails = component.get("v.accountDetailsModel");
         var toastEvent = $A.get("e.force:showToast");
         var requestObject = {};
+		
         requestObject.AccountId = component.get("v.accountId");
         requestObject.customerId = accountDetails.id;
         requestObject.caseId = component.get("v.caseId");
         requestObject.secondaryEmail = encodeURIComponent(accountDetails.secondaryEmail);
+        
         action.setParams({
             reqParams : requestObject
         });
+
         action.setCallback(this, function(response) {
             var state = response.getState();
             if (state === "SUCCESS") { 
                 component.set("v.verificationCode", JSON.parse(response.getReturnValue()).response.securityCode);
                 component.set("v.isEmailVerificationOpen", true);
                 console.log("Secondary Email Verification Code Sent!");
+                
             } else {
                 helper.saveCustomer(component, event, helper);
                 var errors = response.getError();
@@ -558,19 +611,22 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
         });
         $A.enqueueAction(action);
 	},
-	this.dltSecondaryEmail  =  function(component, event, helper) {
-
+    
+    dltSecondaryEmail : function(component, event, helper) {
         var action = component.get("c.deleteSecondaryEmail");
         var accountDetails = component.get("v.accountDetailsModel");
         var toastEvent = $A.get("e.force:showToast");
         var requestObject = {};
+		
         requestObject.AccountId = component.get("v.accountId");
         requestObject.customerId = accountDetails.id;
         requestObject.caseId = component.get("v.caseId");
         requestObject.secondaryEmail = encodeURIComponent(component.get("v.secondaryOldEmailValue"));
+        
         action.setParams({
             reqParams : requestObject
         });
+        
         action.setCallback(this, function(response) {
             var state = response.getState();
             if (state === "SUCCESS") { 
@@ -579,6 +635,7 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
                     "message": "Secondary Email has been removed!",
                     "type": "success"
                 });
+                
             } else {
                 helper.saveCustomer(component, event, helper);
                 var errors = response.getError();
@@ -598,8 +655,7 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
         });
         $A.enqueueAction(action);
     },
-	this.addPersona =  function(component,event,helper){
-
+	addPersona: function(component,event,helper){
         var personaName = component.get("v.personaName");
         var namespace = component.get("v.namespace");
         var caseObj= component.get("v.caseObj");
@@ -628,11 +684,15 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
                 component.set("v.personaName",'');
                 component.find("addPersona")[1].set("v.value",'');
                this.searchCustomerData(component,event,helper);
+           // var refreshEvent = component.getEvent("refreshPersonaGrid");
+           //refreshEvent.fire();
            toastEvent.setParams({
                    "type":'success',
                    "message": "Persona successfully added."//response.getError()//
                });
                toastEvent.fire();
+            
+                
             }
             else if(response.getState()==='ERROR'){
                 var errorMsg = response.getError()[0].message;
@@ -666,14 +726,17 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
                     toastEvent.fire();//firing success
                     toastEventPartialError.fire();//firing error 
                 }
+                
             }
         });
         $A.enqueueAction(action);
+        
+        
     },
-	this.setNamespaces =  function(component,event,helper){
-
+	setNamespaces: function(component,event,helper){
 	   var action= component.get("c.getPersonaNameSpaces");
         action.setCallback(this,function(response){
+            
             var jsonNameSpaces = response.getReturnValue();
             console.log('jsonNameSpaces ::',jsonNameSpaces);
             var parsedResponse = JSON.parse(jsonNameSpaces);
@@ -691,6 +754,6 @@ function AccountBasicInfoHelper(){	this.accordianToggle  =  function(component,e
             component.set("v.personaNamespace",nameSpacesArray);
         });
         $A.enqueueAction(action);
+        
     } 
-}
-module.exports = new AccountBasicInfoHelper();
+})

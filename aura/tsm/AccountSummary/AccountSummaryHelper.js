@@ -1,11 +1,14 @@
-function AccountSummaryHelper(){	this.fetchAccountSummary =  function (component, event, helper) {
-
+({
+    //gets account data from apex controller 
+    fetchAccountSummary: function (component, event, helper) {       			      	 
         var accountSummary = component.get("v.accountSnapDetails");
         var accountBasicInfo = component.get("v.accountSummary");
         this.checkBackupCodes(component, accountSummary);
+        //Formatting date
         if(accountSummary.tfaResponse.status != "Not Setup"){
                     component.set("v.accountSnapDetails.tfaDateFormatting", new Date(accountSummary.tfaResponse.lastModifiedDate));  
         }
+
         if (accountSummary.tfaResponse.codeType == 'APP') {
                     component.set("v.accVerificationType", 'App Authenticator Verification');
                     component.set("v.accVerificationData", '');
@@ -19,41 +22,50 @@ function AccountSummaryHelper(){	this.fetchAccountSummary =  function (component
            }
          component.set("v.toTFAEmail", accountBasicInfo.email);   
     },
-	this.getReasonCodes = function(component,event,helper){
-
+	getReasonCodes:function(component,event,helper){
+           //tsm3020/3021 reasons accountReasons
         var action=component.get("c.getAccountReasonCodes");
         action.setCallback(this,function(response){
             console.log('response of status--',response.getReturnValue());
             if(response.getReturnValue()!=null){
                 var reasonCodesJson=response.getReturnValue();
+                
                 var jsonStr = reasonCodesJson;//JSON.stringify(reasonCodesJson);
                 var parsedJson= JSON.parse(jsonStr); //parse the json sent frm apx
                 var reasonCodesList = parsedJson.response.userReasonCodeList;//object
                 var allAccountStatuses = parsedJson.response.userStatusesList;//object
+                
                 var accountStatuses=[];
                 for(var i=0;i<allAccountStatuses.length;i++){
                     if(allAccountStatuses[i]=='ACTIVE'||allAccountStatuses[i]=='BANNED'||allAccountStatuses[i]=='DISABLED'||allAccountStatuses[i]=='DEACTIVATED'||allAccountStatuses[i]=='SUSPENDED'||allAccountStatuses[i]=='DELETED')
                         accountStatuses.push(allAccountStatuses[i]);
                 }
                 console.log('accountStatuses--',accountStatuses);
+                //converting reaonCodes object to an array with label:'',value:'' 
+                //label:removing capitals&'_' AND value as it is from json
                 console.log('array of reasonCodes--',reasonCodesList);
                 var reasonsList = Object.keys(reasonCodesList).map(function(key){
                     var key1 = reasonCodesList[key].charAt(0).toUpperCase() + reasonCodesList[key].slice(1).toLowerCase(); //capitalize starting letter and remove caps of other letters
                     var reasonLabelKey = key1.replace(/_/g, " "); //replacing underscores with spaces 
                     return {label: reasonLabelKey, value: reasonCodesList[key]}
                 });
+                //converting statuses to label,value
                 var accountStatusList = Object.keys(accountStatuses).map(function(key){
+                    
                     var statusLabelKey = accountStatuses[key].charAt(0).toUpperCase() + accountStatuses[key].slice(1).toLowerCase();
+                    
                     return {label: statusLabelKey, value: accountStatuses[key]}
                 });
+                
                 component.set("v.accountReasons",reasonsList);
                 component.set("v.accountStatusOptions",accountStatusList);
             }
         });
         $A.enqueueAction(action);
-    },
-	this.unShieldAccount =  function (component, event, lockUnlockAction) {
 
+    },
+    // calculates total time (in years) spent as a customer of EA
+    unShieldAccount: function (component, event, lockUnlockAction) {
         var action = component.get("c.lockUnlockAccountId"); 
         var nucleusId = component.get("v.nucleusId");	
 		var caseId = component.get("{!v.caseId}");
@@ -82,10 +94,12 @@ function AccountSummaryHelper(){	this.fetchAccountSummary =  function (component
                 }else{
                     successMessage = 'Account Unshielded';
                 }
+                //Closing the popup
                 var toggleDialog = component.find('snapInDialog');
                 var isCurrentOpen = component.get('v.isCurrentOpen');
                 $A.util.addClass(toggleDialog[4], 'slds-hide');
                 isCurrentOpen[4] = false;
+                //Adding success toast
                 toastEvent.setParams({
     				message:successMessage,
     				type: "success"
@@ -95,8 +109,8 @@ function AccountSummaryHelper(){	this.fetchAccountSummary =  function (component
         });
         $A.enqueueAction(action);
     },
-	this.sendTfaSetupEmail =  function (component, event) {
-
+    // Sends the TFA email to the customer
+    sendTfaSetupEmail: function (component, event) {
         var action = component.get("c.sendTfaSetupEmail"); 
         var nucleusId = component.get("v.nucleusId");
         var toEmail = component.get("v.toTFAEmail");
@@ -114,8 +128,7 @@ function AccountSummaryHelper(){	this.fetchAccountSummary =  function (component
         });
         $A.enqueueAction(action);
     },
-	this.checkBackupCodes =  function (component, accountSummary) {
-
+    checkBackupCodes: function (component, accountSummary) {
         var currentBackupCodesStatus = [];
         for (var i in accountSummary.tfaResponse.backupCodes) {
             currentBackupCodesStatus.push(accountSummary.tfaResponse.backupCodes[i].isExpired);
@@ -126,8 +139,7 @@ function AccountSummaryHelper(){	this.fetchAccountSummary =  function (component
             component.set("v.showGenerateCode", true);
         }
     },
-	this.generateBackupCodes  =  function (component) {
-
+    generateBackupCodes : function (component) {
         var action = component.get("c.generateBackupCodes"); 
         var nucleusId = component.get("v.nucleusId");
         var accountId = component.get("v.accountId");
@@ -149,26 +161,30 @@ function AccountSummaryHelper(){	this.fetchAccountSummary =  function (component
         });
         $A.enqueueAction(action);
     },
-	this.setResetStatus  =  function (component) {
-
+    setResetStatus : function (component) {
         var action = component.get("c.resetSecurityState"); 
         var nucleusId = component.get("v.nucleusId");
         var caseObj = component.get("v.caseObj");    
         var requestObject = {};
+        
         requestObject.securityState = "";
         requestObject.customerId = nucleusId;
         requestObject.caseId = caseObj.Id;
         requestObject.AccountId = caseObj.AccountId;
+        
         action.setParams({
             reqParams : requestObject
         });
         action.setCallback(this, function (response) {
             var state = response.getState();
             if (state === 'SUCCESS') {
+                //getting the model
                 var getSummaryComponent = component.get("v.accountSnapDetails");
                 var getAccountSummary = component.get("v.accountSummary");
+                //Changing the state
                 getSummaryComponent.securityState   = 'GREEN';
                 getAccountSummary.securityState   = 'GREEN';
+                //Setting to the UI
                 component.set("v.accountSnapDetails" , getSummaryComponent);
                 component.set("v.accountSummary" , getAccountSummary);
                 var toastEvent = $A.get("e.force:showToast");
@@ -176,6 +192,7 @@ function AccountSummaryHelper(){	this.fetchAccountSummary =  function (component
                     "message": "Security state is reset successfully.",
                     "type": "success"
                 });
+                
                 component.set('v.isResetStatusOpen', false);
                 toastEvent.fire();
             }
@@ -199,8 +216,7 @@ function AccountSummaryHelper(){	this.fetchAccountSummary =  function (component
         });
         $A.enqueueAction(action);
     },
-	this.formatTfaDate  =  function (component, currentDate) {
-
+     formatTfaDate : function (component, currentDate) {
         var milliseconds = parseInt(new Date() - new Date(currentDate.toString())),
         seconds = parseInt((milliseconds / 1000) % 60),
         minutes = parseInt((milliseconds / (1000 * 60)) % 60),
@@ -229,11 +245,11 @@ function AccountSummaryHelper(){	this.fetchAccountSummary =  function (component
          }  
          return formatterText;
     },
-	this.closePopover =  function(component, event, helper) {
-
+    closePopover: function(component, event, helper) {
       var toggleDialog = component.find('snapInDialog');
       var isCurrentOpen = component.get('v.isCurrentOpen');  
       var isPopupCliked = this.isClickedOnPopup(event, 'slds-popover__body poopover-padding');
+      //Closing all the snap poopover except current selected  
         if(!isPopupCliked){
             for(var eachObject in toggleDialog) {
                 if(event.target !=null){
@@ -246,8 +262,7 @@ function AccountSummaryHelper(){	this.fetchAccountSummary =  function (component
         component.set('v.isCurrentOpen', isCurrentOpen);
         }
     },
-	this.isClickedOnPopup =  function(event, selectorClass) {
-
+    isClickedOnPopup: function(event, selectorClass) {
         var currentElement = event.target;
         if(currentElement !=null){
             while (currentElement.className != selectorClass) {
@@ -259,8 +274,7 @@ function AccountSummaryHelper(){	this.fetchAccountSummary =  function (component
         }
         return true;
 	},
-	this.changeVerificationStatus  =  function (component, status) {
-
+    changeVerificationStatus : function (component, status) {
         var action = component.get("c.changeVerificationStatus"); 
         var nucleusId = component.get("v.nucleusId");
         var summaryModal = component.get("v.accountSnapDetails");
@@ -285,8 +299,10 @@ function AccountSummaryHelper(){	this.fetchAccountSummary =  function (component
         });
         $A.enqueueAction(action);
     },
-	this.emailVerificationCheck =  function (component, event, helper) {
-
+	
+	//TSM-1931
+    // Checking Email Verified or Not
+    emailVerificationCheck: function (component, event, helper) {
         var caseId = component.get("{!v.caseId}");
         var action = component.get("c.checkEmailVerified"); 
         const accountSnapDetails = component.get('v.accountSnapDetails');
@@ -306,6 +322,7 @@ function AccountSummaryHelper(){	this.fetchAccountSummary =  function (component
                     accountSnapDetails.deviceIpGeo = "advisor input";
                     accountSnapDetails.isAovVerified = caseData.Is_Verified__c;
                 }
+                //TSM-4402 - Skipping the second initilization - Need to move to wrapper
                 if(accountSnapDetails.isUnAuthenticated == undefined){
                     accountSnapDetails.isUnAuthenticated = caseData.Unauthenticated__c;
                 }
@@ -317,12 +334,14 @@ function AccountSummaryHelper(){	this.fetchAccountSummary =  function (component
         });
         $A.enqueueAction(action);
     },
-	this.toggleDialogue  =  function(component, event) {
-
+	
+	toggleDialogue : function(component, event) {
+     //Getting the toopTip menu value   
       var targetIcon = event.currentTarget;
       var targetValue = targetIcon.dataset.value;
       var toggleDialog = component.find('snapInDialog');
       var isCurrentOpen = component.get('v.isCurrentOpen');
+         //when clicked again, it will disappear
         component.set("v.displayEdit",true); 
         component.set("v.disableSave",true);
         for(var eachObject in toggleDialog) {
@@ -338,8 +357,7 @@ function AccountSummaryHelper(){	this.fetchAccountSummary =  function (component
         }       
         component.set('v.isCurrentOpen', isCurrentOpen); 
     },
-	this.updateStatus =  function(component,event,helper){
-
+	 updateStatus: function(component,event,helper){
         var nucleusId = component.get("v.nucleusId");
         var caseObj = component.get("v.caseObj");  
         var status = component.get("v.primaryState");
@@ -357,6 +375,7 @@ function AccountSummaryHelper(){	this.fetchAccountSummary =  function (component
 		requestObject['oldStatus']=component.get("v.oldStatus");
         requestObject['reasonCode']=reason;
         requestObject['email']=email;
+		
         console.log('requestObj--',requestObject);
         var action = component.get("c.updateAccountStatus");
         action.setParams({
@@ -367,8 +386,10 @@ function AccountSummaryHelper(){	this.fetchAccountSummary =  function (component
             if(response.getState()==='SUCCESS')
             {
                 if(status=='DELETED'){
+                    //fire component event to tsmwrapper
                     var refreshAccEvnt= component.getEvent("RefreshPersona");
                     refreshAccEvnt.fire();
+                    
                 }
                 this.fetchSummaryAfterUpdate(component,event,helper);
             }
@@ -385,8 +406,8 @@ function AccountSummaryHelper(){	this.fetchAccountSummary =  function (component
         });
         $A.enqueueAction(action);
     },
-	this.fetchSummaryAfterUpdate =  function(component,event,helper){
-
+    //fetching updated account details after update 
+    fetchSummaryAfterUpdate: function(component,event,helper){
         var nucleusId = component.get("v.nucleusId");
         var fetchAction = component.get("c.getAccountDetailsByNucleusId"); 
         var toastEvent = $A.get("e.force:showToast");
@@ -409,5 +430,4 @@ function AccountSummaryHelper(){	this.fetchAccountSummary =  function (component
         });
         $A.enqueueAction(fetchAction);
     },
-}
-module.exports = new AccountSummaryHelper();
+})
