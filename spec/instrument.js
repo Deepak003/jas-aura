@@ -38,7 +38,8 @@ for(var i=0;i<=filelist.length-1;i++){
       }
       // Processing Aura Files : Adding module.exports Functionality
       
-      auraCode = "module.exports = " + auraCode;
+      if(auraCode.indexOf("module.exports") ==-1)
+           auraCode = "module.exports = " + auraCode;
       //auraCode = auraCode.replace("({", "function "+fileName+"(){");
       auraCode = auraCode.replace(/^\s+|\s+$/g, '');
       //auraCode = auraCode + "_lcov_";  
