@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "test": "jasmine",
-    "test-cover": "istanbul cover --root './aura' --include-all-sources spec/specs.js && istanbul check-coverage"
+    "test-cover": "istanbul cover -x 'spec/unit/**/*.js' --root './aura' --include-all-sources spec/specs.js && istanbul check-coverage"
   },
   "keywords": [
     "istanbul"
